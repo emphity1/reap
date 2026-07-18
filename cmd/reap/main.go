@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/emphity1/reap/internal/baseline"
 	"github.com/emphity1/reap/internal/engine"
 	"github.com/emphity1/reap/internal/parser"
 	"github.com/emphity1/reap/internal/report"
@@ -44,6 +45,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	failOn := fs.String("fail-on", "warning",
 		"exit non-zero on findings at or above this severity: info, warning, error, or none")
 	format := fs.String("format", "text", "output format: text or json")
+	baselinePath := fs.String("baseline", "",
+		"baseline file of accepted findings to suppress (see -write-baseline)")
+	writeBaseline := fs.String("write-baseline", "",
+		"write the current findings to this baseline file and exit 0")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -77,7 +82,36 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 2
 	}
 	findings := engine.Run(objs, rules.All(), rules.AllSet())
-	res := report.Result{Findings: findings, ObjectsChecked: len(objs)}
+
+	if *writeBaseline != "" {
+		if *baselinePath != "" {
+			fmt.Fprintln(stderr, "reap: -baseline and -write-baseline are mutually exclusive")
+			return 2
+		}
+		n, err := baseline.Write(*writeBaseline, findings)
+		if err != nil {
+			fmt.Fprintf(stderr, "reap: %v\n", err)
+			return 2
+		}
+		fmt.Fprintf(stdout, "reap: wrote %d baseline entr(y/ies) to %s\n", n, *writeBaseline)
+		return 0
+	}
+	suppressed, stale := 0, 0
+	if *baselinePath != "" {
+		ignore, err := baseline.Load(*baselinePath)
+		if err != nil {
+			fmt.Fprintf(stderr, "reap: %v\n", err)
+			return 2
+		}
+		findings, suppressed, stale = baseline.Filter(findings, ignore)
+	}
+
+	res := report.Result{
+		Findings:       findings,
+		ObjectsChecked: len(objs),
+		Suppressed:     suppressed,
+		StaleBaseline:  stale,
+	}
 	if err := reporter.Report(stdout, res); err != nil {
 		fmt.Fprintf(stderr, "reap: %v\n", err)
 		return 2

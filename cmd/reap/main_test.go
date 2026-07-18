@@ -153,3 +153,43 @@ func TestRunInvalidFormat(t *testing.T) {
 		t.Errorf("stderr should name the invalid format:\n%s", stderr.String())
 	}
 }
+
+func TestBaselineFlow(t *testing.T) {
+	dir := t.TempDir()
+	baselinePath := filepath.Join(dir, ".reap-baseline.json")
+
+	var out, errOut strings.Builder
+	if exit := run([]string{"-write-baseline", baselinePath, badFixture}, strings.NewReader(""), &out, &errOut); exit != 0 {
+		t.Fatalf("write-baseline exit = %d, want 0\nstderr:\n%s", exit, errOut.String())
+	}
+	if !strings.Contains(out.String(), "baseline") {
+		t.Errorf("write-baseline output should mention the baseline:\n%s", out.String())
+	}
+	if _, err := os.Stat(baselinePath); err != nil {
+		t.Fatalf("baseline file not written: %v", err)
+	}
+
+	out.Reset()
+	if exit := run([]string{"-baseline", baselinePath, badFixture}, strings.NewReader(""), &out, &errOut); exit != 0 {
+		t.Fatalf("lint with baseline exit = %d, want 0 (all findings suppressed)\nstdout:\n%s", exit, out.String())
+	}
+	if !strings.Contains(out.String(), "suppressed") {
+		t.Errorf("output should report suppressed findings:\n%s", out.String())
+	}
+
+	out.Reset()
+	otherFixture := "../../testdata/job-no-deadline/bad.yaml"
+	if exit := run([]string{"-baseline", baselinePath, otherFixture}, strings.NewReader(""), &out, &errOut); exit != 1 {
+		t.Fatalf("baseline for another file must not suppress: exit = %d, want 1\nstdout:\n%s", exit, out.String())
+	}
+	if !strings.Contains(out.String(), "stale") {
+		t.Errorf("output should report stale baseline entries:\n%s", out.String())
+	}
+
+	if exit := run([]string{"-baseline", filepath.Join(dir, "missing.json"), badFixture}, strings.NewReader(""), &out, &errOut); exit != 2 {
+		t.Errorf("missing baseline file: exit = %d, want 2", exit)
+	}
+	if exit := run([]string{"-baseline", baselinePath, "-write-baseline", baselinePath, badFixture}, strings.NewReader(""), &out, &errOut); exit != 2 {
+		t.Errorf("baseline together with write-baseline: exit = %d, want 2", exit)
+	}
+}

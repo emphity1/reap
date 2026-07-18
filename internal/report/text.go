@@ -13,7 +13,8 @@ type Text struct{}
 
 func (Text) Report(w io.Writer, res Result) error {
 	if len(res.Findings) == 0 {
-		_, err := fmt.Fprintf(w, "reap: %d object(s) checked, no findings\n", res.ObjectsChecked)
+		_, err := fmt.Fprintf(w, "reap: %d object(s) checked, no findings%s\n",
+			res.ObjectsChecked, baselineNote(res))
 		return err
 	}
 	counts := map[rules.Severity]int{}
@@ -33,7 +34,21 @@ func (Text) Report(w io.Writer, res Result) error {
 			fmt.Fprintf(w, "        fix: %s\n", f.Fix)
 		}
 	}
-	_, err := fmt.Fprintf(w, "\nreap: %d object(s) checked, %d finding(s): %d error, %d warning, %d info\n",
-		res.ObjectsChecked, len(res.Findings), counts[rules.Error], counts[rules.Warning], counts[rules.Info])
+	_, err := fmt.Fprintf(w, "\nreap: %d object(s) checked, %d finding(s): %d error, %d warning, %d info%s\n",
+		res.ObjectsChecked, len(res.Findings), counts[rules.Error], counts[rules.Warning], counts[rules.Info],
+		baselineNote(res))
 	return err
+}
+
+// baselineNote renders the baseline suffix of the summary line; empty when
+// no baseline was in play.
+func baselineNote(res Result) string {
+	if res.Suppressed == 0 && res.StaleBaseline == 0 {
+		return ""
+	}
+	note := fmt.Sprintf(" (%d suppressed by baseline", res.Suppressed)
+	if res.StaleBaseline > 0 {
+		note += fmt.Sprintf(", %d stale baseline entr(y/ies)", res.StaleBaseline)
+	}
+	return note + ")"
 }

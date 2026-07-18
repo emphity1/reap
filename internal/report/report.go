@@ -12,6 +12,8 @@ import (
 type Result struct {
 	Findings       []rules.Finding
 	ObjectsChecked int
+	Suppressed     int // findings hidden by the baseline
+	StaleBaseline  int // baseline entries that matched nothing
 }
 
 // Reporter renders a Result to a writer.

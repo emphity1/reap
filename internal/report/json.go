@@ -22,6 +22,8 @@ type jsonSummary struct {
 	ObjectsChecked int            `json:"objectsChecked"`
 	Findings       int            `json:"findings"`
 	BySeverity     map[string]int `json:"bySeverity"`
+	Suppressed     int            `json:"suppressed"`
+	StaleBaseline  int            `json:"staleBaselineEntries"`
 }
 
 type jsonFinding struct {
@@ -41,6 +43,8 @@ func (JSON) Report(w io.Writer, res Result) error {
 		Summary: jsonSummary{
 			ObjectsChecked: res.ObjectsChecked,
 			Findings:       len(res.Findings),
+			Suppressed:     res.Suppressed,
+			StaleBaseline:  res.StaleBaseline,
 			BySeverity: map[string]int{
 				rules.Error.String():   0,
 				rules.Warning.String(): 0,
