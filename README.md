@@ -1,5 +1,9 @@
 # reap
 
+[![CI](https://github.com/emphity1/reap/actions/workflows/ci.yml/badge.svg)](https://github.com/emphity1/reap/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/emphity1/reap)](https://github.com/emphity1/reap/releases/latest)
+[![License](https://img.shields.io/github/license/emphity1/reap)](LICENSE)
+
 Find and cut wasted GPU spend in Kubernetes. Static checks for ML/GPU workloads, from your CI to your cluster.
 
 `reap` scans Kubernetes manifests for GPU waste and ML workload
@@ -10,17 +14,43 @@ Think "kube-linter, specialized for GPU and ML workloads."
 It reads local files only: no network, no credentials, no cluster access,
 no telemetry.
 
-## Install
+## Who is it for
 
-```sh
-git clone https://github.com/emphity1/reap.git
-cd reap
-make build   # produces bin/reap
+- **ML engineers** writing a PyTorchJob or a vLLM deployment, who want to know
+  *before* deploying what will be rejected, deadlock, or crash with cryptic
+  shared-memory errors.
+- **DevOps / platform engineers** who want a CI guardrail so GPU manifests
+  that waste money or break production never merge.
+- **Anyone paying the GPU bill** who wants "job hung since Thursday" and
+  "notebook idle all weekend" caught by a linter, not by the invoice.
+
+Where it fits:
+
+```mermaid
+flowchart LR
+    M["manifests/*.yaml"] --> R["reap"]
+    H["helm template / kustomize build"] -- stdin --> R
+    B[".reap-baseline.json<br>(accepted findings)"] -. suppresses .-> R
+    R --> T["terminal report<br>with fix hints"]
+    R --> J["JSON + stable<br>fingerprints"]
+    R --> E{"exit code"}
+    E -- "0" --> OK["CI passes"]
+    E -- "1" --> KO["CI fails:<br>new findings"]
 ```
 
-Or use the Docker image (distroless, ~5 MB):
+## Install
+
+Prebuilt binaries for Linux, macOS, and Windows (amd64/arm64) are on the
+[Releases](https://github.com/emphity1/reap/releases/latest) page. Or:
 
 ```sh
+# with Go installed
+go install github.com/emphity1/reap/cmd/reap@latest
+
+# from source
+git clone https://github.com/emphity1/reap.git && cd reap && make build
+
+# as a Docker image (distroless, ~5 MB)
 make docker                                        # builds reap:dev
 docker run --rm -v "$PWD:/work:ro" reap:dev /work  # lint a directory
 helm template . | docker run --rm -i reap:dev -    # lint rendered charts
@@ -122,7 +152,7 @@ both how many were suppressed and how many baseline entries went **stale**
 GitHub Actions — this repo doubles as an action:
 
 ```yaml
-- uses: emphity1/reap@main
+- uses: emphity1/reap@v0.1.0
   with:
     path: ./manifests/
     fail-on: warning
@@ -151,10 +181,17 @@ for Linux, macOS, and Windows (amd64/arm64) appear on the
 | `inference-no-hpa` | info | a model-server `Deployment`/`StatefulSet` has no HPA targeting it in the linted input — fixed replicas idle GPUs off-peak or throttle at peak |
 | `no-pdb` | info | a model server has no PodDisruptionBudget selecting its pods in the linted input (`matchLabels` matching; `matchExpressions` PDBs are assumed to match) |
 
-More GPU-waste rules (idle notebooks, missing gang scheduling, missing
-probes/HPA/PDB, topology-unaware training, GPU node pools without
-scale-to-zero) are planned — each ships with passing and failing fixtures
-in `testdata/`.
+Every rule ships with passing and failing fixtures in `testdata/`. Severity
+is a discipline: `error` means the manifest is broken, `warning` means money
+or uptime is at risk, `info` marks heuristics and cross-object checks whose
+evidence may legitimately live outside the linted files — those explain
+themselves and lean on the baseline.
+
+Deliberately **not** checked, because a manifest cannot answer it: actual GPU
+utilization (a runtime measurement — needs DCGM/metrics, a later phase) and
+node-pool scale-to-zero (lives in Terraform or autoscaler CRDs, not in
+workload manifests). A linter that guesses burns trust; these return only
+when they can be answered honestly.
 
 ## Development
 
