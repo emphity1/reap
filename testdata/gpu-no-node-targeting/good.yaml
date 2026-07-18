@@ -1,21 +1,19 @@
-# Passing fixtures for the no-gpu-limit rule.
+# Passing fixtures for the gpu-no-node-targeting rule.
 #
-# GPU limit set; for extended resources the request defaults to the limit,
-# so declaring only the limit is also valid.
+# Toleration for the canonical GPU node taint.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: llm-inference
+  name: llm-api
   namespace: ml
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      app: llm-inference
+      app: llm-api
   template:
     metadata:
       labels:
-        app: llm-inference
+        app: llm-api
     spec:
       tolerations:
         - key: nvidia.com/gpu
@@ -33,14 +31,42 @@ spec:
             - name: shm
               mountPath: /dev/shm
           resources:
-            requests:
-              cpu: "4"
-              memory: 16Gi
-              nvidia.com/gpu: 1
             limits:
               nvidia.com/gpu: 1
 ---
-# No GPUs at all — out of scope for this rule.
+# Node selector on a GPU-operator label works too.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embedder
+  namespace: ml
+spec:
+  selector:
+    matchLabels:
+      app: embedder
+  template:
+    metadata:
+      labels:
+        app: embedder
+    spec:
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 4Gi
+      containers:
+        - name: embedder
+          image: ghcr.io/example/embedder:1.2
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+---
+# No GPUs: node targeting is not this linter's business.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -58,7 +84,3 @@ spec:
       containers:
         - name: web
           image: nginx:1.27
-          resources:
-            limits:
-              cpu: "1"
-              memory: 256Mi

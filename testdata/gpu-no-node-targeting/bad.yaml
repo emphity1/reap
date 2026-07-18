@@ -1,0 +1,64 @@
+# Failing fixtures for the gpu-no-node-targeting rule.
+#
+# GPU workload with no nodeSelector, node affinity, or tolerations: on a
+# cluster whose GPU nodes are tainted, this sits Pending forever — and the
+# autoscaler will not scale a tainted GPU pool up for a pod that does not
+# tolerate it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-api
+  namespace: ml
+spec:
+  selector:
+    matchLabels:
+      app: llm-api
+  template:
+    metadata:
+      labels:
+        app: llm-api
+    spec:
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
+      containers:
+        - name: server
+          image: ghcr.io/example/llm-api:1.0
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: feature-store
+  namespace: ml
+spec:
+  selector:
+    matchLabels:
+      app: feature-store
+  serviceName: feature-store
+  template:
+    metadata:
+      labels:
+        app: feature-store
+    spec:
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 4Gi
+      containers:
+        - name: embedder
+          image: ghcr.io/example/embedder:1.2
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            limits:
+              nvidia.com/gpu: 1

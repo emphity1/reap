@@ -14,6 +14,10 @@ spec:
       replicas: 1
       template:
         spec:
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
           volumes:
             - name: shm
               emptyDir:
@@ -32,6 +36,10 @@ spec:
       replicas: 3
       template:
         spec:
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
           volumes:
             - name: shm
               emptyDir:
@@ -66,6 +74,10 @@ spec:
       replicas: 4
       template:
         spec:
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
           volumes:
             - name: shm
               emptyDir:

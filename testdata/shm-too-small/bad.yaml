@@ -13,6 +13,10 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: trainer
           image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
@@ -36,6 +40,10 @@ spec:
       labels:
         app: embedder
     spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       volumes:
         - name: shm
           emptyDir: {}

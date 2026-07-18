@@ -69,5 +69,6 @@ func All() []Rule {
 		ModelServerNoProbes{},
 		DistributedTrainingNoGangScheduling{},
 		ShmTooSmall{},
+		GPUNoNodeTargeting{},
 	}
 }

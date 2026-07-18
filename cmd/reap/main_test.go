@@ -45,7 +45,19 @@ func TestRun(t *testing.T) {
 			name:       "directory argument is scanned recursively",
 			args:       []string{"../../testdata"},
 			wantExit:   1,
-			wantStdout: []string{"no-gpu-limit", "job-no-deadline", "model-server-no-probes", "distributed-training-no-gang-scheduling", "shm-too-small", "[warning]"},
+			wantStdout: []string{"no-gpu-limit", "job-no-deadline", "model-server-no-probes", "distributed-training-no-gang-scheduling", "shm-too-small", "gpu-no-node-targeting", "[warning]", "[info]"},
+		},
+		{
+			name:       "info findings do not fail the default warning threshold",
+			args:       []string{"../../testdata/gpu-no-node-targeting/bad.yaml"},
+			wantExit:   0,
+			wantStdout: []string{"gpu-no-node-targeting", "[info]"},
+		},
+		{
+			name:       "fail-on info gates on info findings",
+			args:       []string{"-fail-on=info", "../../testdata/gpu-no-node-targeting/bad.yaml"},
+			wantExit:   1,
+			wantStdout: []string{"gpu-no-node-targeting"},
 		},
 		{
 			name:     "fail-on none reports findings but exits 0",

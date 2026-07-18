@@ -12,6 +12,10 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       volumes:
         - name: shm
           emptyDir:
@@ -54,6 +58,10 @@ metadata:
   namespace: ml
 spec:
   hostIPC: true
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
   containers:
     - name: profiler
       image: ghcr.io/example/gpu-profiler:0.9

@@ -16,6 +16,10 @@ spec:
       labels:
         app: chat-api
     spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       volumes:
         - name: shm
           emptyDir:
@@ -74,6 +78,10 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       volumes:
         - name: shm
           emptyDir:
