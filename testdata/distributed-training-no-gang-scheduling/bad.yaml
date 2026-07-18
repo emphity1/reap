@@ -1,0 +1,58 @@
+# Failing fixtures for the distributed-training-no-gang-scheduling rule.
+#
+# 1 master + 3 workers, one GPU each, and nothing in the manifest arranges
+# for them to be scheduled as a unit: workers that land first hold their
+# GPUs waiting for peers that may never fit.
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: bert-pretrain
+  namespace: ml
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+    Worker:
+      replicas: 3
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+---
+# MPI job: the launcher needs no GPU, the workers do — still a gang.
+apiVersion: kubeflow.org/v2beta1
+kind: MPIJob
+metadata:
+  name: allreduce-bench
+  namespace: ml
+spec:
+  mpiReplicaSpecs:
+    Launcher:
+      replicas: 1
+      template:
+        spec:
+          containers:
+            - name: launcher
+              image: mpioperator/mpi-pi:openmpi
+    Worker:
+      replicas: 4
+      template:
+        spec:
+          containers:
+            - name: worker
+              image: mpioperator/mpi-pi:openmpi
+              resources:
+                limits:
+                  nvidia.com/gpu: 2

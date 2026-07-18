@@ -1,0 +1,91 @@
+# Passing fixtures for the distributed-training-no-gang-scheduling rule.
+#
+# Explicit gang intent via the training operator's schedulingPolicy.
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: bert-pretrain
+  namespace: ml
+spec:
+  runPolicy:
+    schedulingPolicy:
+      minAvailable: 4
+      queue: training
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+    Worker:
+      replicas: 3
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+---
+# Submitted through a Kueue queue: Kueue admits the whole workload at once.
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: llama-finetune
+  namespace: ml
+  labels:
+    kueue.x-k8s.io/queue-name: team-ml
+spec:
+  pytorchReplicaSpecs:
+    Worker:
+      replicas: 8
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+---
+# Single replica: nothing to gang.
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: solo-experiment
+  namespace: ml
+spec:
+  pytorchReplicaSpecs:
+    Worker:
+      replicas: 1
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+---
+# CPU-only distributed job: real deadlock risk too, but out of scope for a
+# GPU linter.
+apiVersion: kubeflow.org/v1
+kind: TFJob
+metadata:
+  name: cpu-etl
+  namespace: data
+spec:
+  tfReplicaSpecs:
+    Worker:
+      replicas: 3
+      template:
+        spec:
+          containers:
+            - name: tensorflow
+              image: tensorflow/tensorflow:2.16.1

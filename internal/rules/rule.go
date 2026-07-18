@@ -67,5 +67,6 @@ func All() []Rule {
 		NoGPULimit{},
 		JobNoDeadline{},
 		ModelServerNoProbes{},
+		DistributedTrainingNoGangScheduling{},
 	}
 }

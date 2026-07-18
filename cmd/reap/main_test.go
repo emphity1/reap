@@ -45,7 +45,7 @@ func TestRun(t *testing.T) {
 			name:       "directory argument is scanned recursively",
 			args:       []string{"../../testdata"},
 			wantExit:   1,
-			wantStdout: []string{"no-gpu-limit", "job-no-deadline", "model-server-no-probes", "[warning]"},
+			wantStdout: []string{"no-gpu-limit", "job-no-deadline", "model-server-no-probes", "distributed-training-no-gang-scheduling", "[warning]"},
 		},
 		{
 			name:     "fail-on none reports findings but exits 0",

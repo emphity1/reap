@@ -94,6 +94,7 @@ upcoming baseline/ignore mechanism is a set of these fingerprints.
 | `no-gpu-limit`    | error    | a container requests a GPU without an equal limit (rejected by the API server; the request/limit pair must be equal for extended resources) |
 | `job-no-deadline` | warning  | a GPU `Job` or `CronJob` sets no `activeDeadlineSeconds`, so a hung run holds its GPUs indefinitely |
 | `model-server-no-probes` | warning | a known inference server (vLLM, Triton, TGI, TorchServe, SGLang, Ollama, KServe, NIM, LMDeploy) has no `readinessProbe`, so traffic arrives minutes before the model finishes loading |
+| `distributed-training-no-gang-scheduling` | warning | a multi-replica GPU training job (PyTorchJob, TFJob, MPIJob, XGBoostJob, PaddleJob) has no visible gang-scheduling config (`runPolicy.schedulingPolicy`, Kueue/KAI/YuniKorn queue labels, Volcano/coscheduling scheduler or annotations) — replicas can deadlock holding GPUs |
 
 More GPU-waste rules (idle notebooks, missing gang scheduling, missing
 probes/HPA/PDB, topology-unaware training, GPU node pools without
