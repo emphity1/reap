@@ -1,0 +1,37 @@
+# Failing fixture for the multinode-no-topology-affinity rule.
+#
+# Gang-scheduled (so distributed-training-no-gang-scheduling stays quiet),
+# but nothing constrains where the 8 workers land: spread across zones,
+# NCCL collectives fall back to the slow network path.
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: llama-pretrain
+  namespace: ml
+spec:
+  runPolicy:
+    schedulingPolicy:
+      minAvailable: 8
+  pytorchReplicaSpecs:
+    Worker:
+      replicas: 8
+      template:
+        spec:
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+          volumes:
+            - name: shm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 8Gi
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              volumeMounts:
+                - name: shm
+                  mountPath: /dev/shm
+              resources:
+                limits:
+                  nvidia.com/gpu: 8

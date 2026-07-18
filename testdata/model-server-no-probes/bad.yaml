@@ -76,3 +76,53 @@ spec:
           resources:
             limits:
               nvidia.com/gpu: 1
+---
+# HPA and PDB for each server keep the set-level rules quiet: this fixture
+# exists to demonstrate missing probes, nothing else.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: chat-api
+  namespace: ml
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: chat-api
+  minReplicas: 1
+  maxReplicas: 8
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chat-api
+  namespace: ml
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: chat-api
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: triton
+  namespace: ml
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: triton
+  minReplicas: 1
+  maxReplicas: 4
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: triton
+  namespace: ml
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: triton

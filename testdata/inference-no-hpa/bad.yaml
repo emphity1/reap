@@ -1,0 +1,60 @@
+# Failing fixture for the inference-no-hpa rule.
+#
+# A fully hardened vLLM server (probes, shm, tolerations, PDB) — but nothing
+# scales it: fixed replicas idle GPUs off-peak or throttle traffic at peak.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-api
+  namespace: hpa-missing
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chat-api
+  template:
+    metadata:
+      labels:
+        app: chat-api
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
+      containers:
+        - name: server
+          image: vllm/vllm-openai:v0.5.0
+          ports:
+            - containerPort: 8000
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chat-api
+  namespace: hpa-missing
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: chat-api

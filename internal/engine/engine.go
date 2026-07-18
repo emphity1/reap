@@ -8,13 +8,21 @@ import (
 	"github.com/emphity1/reap/internal/rules"
 )
 
-// Run applies each rule to each object and returns the findings sorted by
-// source, then object, then rule, so output is stable and grouped per file.
-func Run(objs []parser.Object, rs []rules.Rule) []rules.Finding {
+// Run applies each per-object rule to each object, then each set-level rule
+// to the whole set (with the cross-object Index built once), and returns the
+// findings sorted by source, then object, then rule, so output is stable and
+// grouped per file.
+func Run(objs []parser.Object, rs []rules.Rule, srs []rules.SetRule) []rules.Finding {
 	var findings []rules.Finding
 	for _, obj := range objs {
 		for _, r := range rs {
 			findings = append(findings, r.Check(obj)...)
+		}
+	}
+	if len(srs) > 0 {
+		idx := rules.BuildIndex(objs)
+		for _, sr := range srs {
+			findings = append(findings, sr.CheckAll(objs, idx)...)
 		}
 	}
 	sort.SliceStable(findings, func(i, j int) bool {

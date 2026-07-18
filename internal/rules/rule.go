@@ -70,5 +70,7 @@ func All() []Rule {
 		DistributedTrainingNoGangScheduling{},
 		ShmTooSmall{},
 		GPUNoNodeTargeting{},
+		MultinodeNoTopologyAffinity{},
+		NotebookNoIdleCulling{},
 	}
 }

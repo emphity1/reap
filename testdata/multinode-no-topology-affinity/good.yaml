@@ -1,0 +1,78 @@
+# Passing fixtures for the multinode-no-topology-affinity rule.
+#
+# Pod affinity packs the workers into one topology domain.
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: llama-pretrain
+  namespace: ml
+spec:
+  runPolicy:
+    schedulingPolicy:
+      minAvailable: 8
+  pytorchReplicaSpecs:
+    Worker:
+      replicas: 8
+      template:
+        metadata:
+          labels:
+            training-job: llama-pretrain
+        spec:
+          affinity:
+            podAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: topology.kubernetes.io/zone
+                    labelSelector:
+                      matchLabels:
+                        training-job: llama-pretrain
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+          volumes:
+            - name: shm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 8Gi
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              volumeMounts:
+                - name: shm
+                  mountPath: /dev/shm
+              resources:
+                limits:
+                  nvidia.com/gpu: 8
+---
+# Single replica: no inter-node traffic to worry about.
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: solo-tune
+  namespace: ml
+spec:
+  pytorchReplicaSpecs:
+    Worker:
+      replicas: 1
+      template:
+        spec:
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+          volumes:
+            - name: shm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 8Gi
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              volumeMounts:
+                - name: shm
+                  mountPath: /dev/shm
+              resources:
+                limits:
+                  nvidia.com/gpu: 1

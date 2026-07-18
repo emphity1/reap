@@ -27,7 +27,7 @@ func TestRunSortsFindings(t *testing.T) {
 		{Kind: "Pod", Name: "b", Source: "z.yaml"},
 		{Kind: "Pod", Name: "a", Source: "a.yaml"},
 	}
-	findings := Run(objs, []rules.Rule{stubRule{id: "r2"}, stubRule{id: "r1"}})
+	findings := Run(objs, []rules.Rule{stubRule{id: "r2"}, stubRule{id: "r1"}}, nil)
 	if len(findings) != 4 {
 		t.Fatalf("got %d findings, want 4", len(findings))
 	}
@@ -42,5 +42,27 @@ func TestRunSortsFindings(t *testing.T) {
 			t.Errorf("finding %d = %s/%s, want %s/%s",
 				i, findings[i].Source, findings[i].RuleID, want.source, want.rule)
 		}
+	}
+}
+
+// stubSetRule reports one finding over the whole set.
+type stubSetRule struct{}
+
+func (stubSetRule) ID() string               { return "stub-set" }
+func (stubSetRule) Severity() rules.Severity { return rules.Info }
+
+func (r stubSetRule) CheckAll(objs []parser.Object, idx *rules.Index) []rules.Finding {
+	return []rules.Finding{{RuleID: r.ID(), Severity: r.Severity(), Message: "set", Source: "a.yaml"}}
+}
+
+func TestRunDispatchesSetRules(t *testing.T) {
+	objs := []parser.Object{{Kind: "Pod", Name: "a", Source: "a.yaml"}}
+	findings := Run(objs, []rules.Rule{stubRule{id: "r1"}}, []rules.SetRule{stubSetRule{}})
+	var ids []string
+	for _, f := range findings {
+		ids = append(ids, f.RuleID)
+	}
+	if len(findings) != 2 {
+		t.Fatalf("got findings %v, want one per-object and one set-level", ids)
 	}
 }

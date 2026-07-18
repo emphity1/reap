@@ -1,0 +1,59 @@
+# Passing fixtures for the notebook-no-idle-culling rule.
+#
+# Kernel culling configured on the notebook server itself.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: research-notebook
+  namespace: ml
+spec:
+  selector:
+    matchLabels:
+      app: research-notebook
+  serviceName: research-notebook
+  template:
+    metadata:
+      labels:
+        app: research-notebook
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      containers:
+        - name: notebook
+          image: quay.io/jupyter/pytorch-notebook:cuda12-latest
+          args:
+            - start-notebook.py
+            - --MappingKernelManager.cull_idle_timeout=3600
+            - --NotebookApp.shutdown_no_activity_timeout=3600
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+---
+# CPU-only notebook: cheap to forget, out of scope for a GPU linter.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docs-notebook
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: docs-notebook
+  template:
+    metadata:
+      labels:
+        app: docs-notebook
+    spec:
+      containers:
+        - name: notebook
+          image: quay.io/jupyter/base-notebook:latest

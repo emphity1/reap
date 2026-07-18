@@ -1,11 +1,9 @@
-# Passing fixtures for the model-server-no-probes rule.
-#
-# vLLM with a readinessProbe plus a generous startupProbe for weight loading.
+# Passing fixture for the inference-no-hpa rule: the HPA targets the server.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: chat-api
-  namespace: ml
+  namespace: hpa-ok
 spec:
   replicas: 2
   selector:
@@ -30,9 +28,6 @@ spec:
           image: vllm/vllm-openai:v0.5.0
           ports:
             - containerPort: 8000
-          volumeMounts:
-            - name: shm
-              mountPath: /dev/shm
           startupProbe:
             httpGet:
               path: /health
@@ -43,53 +38,6 @@ spec:
             httpGet:
               path: /health
               port: 8000
-          resources:
-            limits:
-              nvidia.com/gpu: 1
----
-# Not a model server: out of scope, probes or not.
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: web
-  namespace: default
-spec:
-  selector:
-    matchLabels:
-      app: web
-  template:
-    metadata:
-      labels:
-        app: web
-    spec:
-      containers:
-        - name: web
-          image: nginx:1.27
----
-# Batch scoring Job: same vLLM image, but no Service traffic — probes are
-# irrelevant for batch workloads.
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: batch-scoring
-  namespace: ml
-spec:
-  activeDeadlineSeconds: 7200
-  template:
-    spec:
-      restartPolicy: Never
-      tolerations:
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
-      volumes:
-        - name: shm
-          emptyDir:
-            medium: Memory
-            sizeLimit: 8Gi
-      containers:
-        - name: scorer
-          image: vllm/vllm-openai:v0.5.0
           volumeMounts:
             - name: shm
               mountPath: /dev/shm
@@ -101,7 +49,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: chat-api
-  namespace: ml
+  namespace: hpa-ok
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -114,7 +62,7 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: chat-api
-  namespace: ml
+  namespace: hpa-ok
 spec:
   minAvailable: 1
   selector:

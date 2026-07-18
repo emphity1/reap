@@ -76,7 +76,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "reap: %v\n", err)
 		return 2
 	}
-	findings := engine.Run(objs, rules.All())
+	findings := engine.Run(objs, rules.All(), rules.AllSet())
 	res := report.Result{Findings: findings, ObjectsChecked: len(objs)}
 	if err := reporter.Report(stdout, res); err != nil {
 		fmt.Fprintf(stderr, "reap: %v\n", err)

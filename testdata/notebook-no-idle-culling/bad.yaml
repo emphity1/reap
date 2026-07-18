@@ -1,0 +1,65 @@
+# Failing fixtures for the notebook-no-idle-culling rule.
+#
+# A GPU Jupyter notebook with no visible idle culling: forgotten on Friday,
+# it holds its GPU all weekend — an idle A100 costs the same as a busy one.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: research-notebook
+  namespace: ml
+spec:
+  selector:
+    matchLabels:
+      app: research-notebook
+  serviceName: research-notebook
+  template:
+    metadata:
+      labels:
+        app: research-notebook
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      containers:
+        - name: notebook
+          image: quay.io/jupyter/pytorch-notebook:cuda12-latest
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+---
+# Kubeflow Notebook CRD, same story.
+apiVersion: kubeflow.org/v1
+kind: Notebook
+metadata:
+  name: experiments
+  namespace: ml
+spec:
+  template:
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      containers:
+        - name: experiments
+          image: kubeflownotebookswg/jupyter-pytorch-cuda-full:v1.9.0
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            limits:
+              nvidia.com/gpu: 1
