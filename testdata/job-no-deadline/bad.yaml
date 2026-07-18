@@ -1,0 +1,40 @@
+# Failing fixtures for the job-no-deadline rule.
+#
+# A GPU training job with no activeDeadlineSeconds: if a run hangs (bad data,
+# NCCL stall, crash loop), it keeps its GPUs allocated until a human notices.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-resnet
+  namespace: ml
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: trainer
+          image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+          resources:
+            limits:
+              nvidia.com/gpu: 4
+---
+# Nightly batch inference: every Job this CronJob spawns is unbounded.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nightly-embeddings
+  namespace: ml
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: embed
+              image: ghcr.io/example/embedder:1.2
+              resources:
+                limits:
+                  nvidia.com/gpu: 1

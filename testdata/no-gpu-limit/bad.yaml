@@ -1,0 +1,47 @@
+# Failing fixtures for the no-gpu-limit rule.
+#
+# The container requests a GPU but sets no limit. Kubernetes treats GPUs as
+# extended resources and rejects requests without an equal limit, so this
+# Deployment never deploys — reap catches it in CI instead of at rollout.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-inference
+  namespace: ml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-inference
+  template:
+    metadata:
+      labels:
+        app: llm-inference
+    spec:
+      containers:
+        - name: server
+          image: vllm/vllm-openai:v0.5.0
+          resources:
+            requests:
+              cpu: "4"
+              memory: 16Gi
+              nvidia.com/gpu: 1
+---
+# GPU request and limit disagree — Kubernetes requires them to be equal.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: finetune
+  namespace: ml
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: trainer
+          image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+          resources:
+            requests:
+              nvidia.com/gpu: 1
+            limits:
+              nvidia.com/gpu: 2
