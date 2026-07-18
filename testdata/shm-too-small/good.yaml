@@ -1,0 +1,62 @@
+# Passing fixtures for the shm-too-small rule.
+#
+# Memory-backed emptyDir mounted at /dev/shm: DataLoader workers get real
+# shared memory, bounded by sizeLimit.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-resnet
+  namespace: ml
+spec:
+  activeDeadlineSeconds: 14400
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
+      containers:
+        - name: trainer
+          image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            limits:
+              nvidia.com/gpu: 4
+---
+# CPU-only workload: default /dev/shm concerns are not this linter's lane.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.27
+---
+# hostIPC shares the host's /dev/shm: unusual, but it is shared memory.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: profiler
+  namespace: ml
+spec:
+  hostIPC: true
+  containers:
+    - name: profiler
+      image: ghcr.io/example/gpu-profiler:0.9
+      resources:
+        limits:
+          nvidia.com/gpu: 1

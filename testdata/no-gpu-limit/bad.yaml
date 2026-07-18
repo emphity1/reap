@@ -18,9 +18,17 @@ spec:
       labels:
         app: llm-inference
     spec:
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
       containers:
         - name: server
           image: ghcr.io/example/llm-api:1.0
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
           resources:
             requests:
               cpu: "4"
@@ -38,9 +46,17 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
       containers:
         - name: trainer
           image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
           resources:
             requests:
               nvidia.com/gpu: 1

@@ -17,11 +17,19 @@ spec:
       labels:
         app: chat-api
     spec:
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
       containers:
         - name: server
           image: vllm/vllm-openai:v0.5.0
           ports:
             - containerPort: 8000
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
           resources:
             limits:
               nvidia.com/gpu: 1
@@ -42,9 +50,17 @@ spec:
       labels:
         app: triton
     spec:
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
       containers:
         - name: triton
           image: nvcr.io/nvidia/tritonserver:24.05-py3
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
           livenessProbe:
             httpGet:
               path: /v2/health/live

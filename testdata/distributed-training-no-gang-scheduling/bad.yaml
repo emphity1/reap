@@ -14,9 +14,17 @@ spec:
       replicas: 1
       template:
         spec:
+          volumes:
+            - name: shm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 8Gi
           containers:
             - name: pytorch
               image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              volumeMounts:
+                - name: shm
+                  mountPath: /dev/shm
               resources:
                 limits:
                   nvidia.com/gpu: 1
@@ -24,9 +32,17 @@ spec:
       replicas: 3
       template:
         spec:
+          volumes:
+            - name: shm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 8Gi
           containers:
             - name: pytorch
               image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+              volumeMounts:
+                - name: shm
+                  mountPath: /dev/shm
               resources:
                 limits:
                   nvidia.com/gpu: 1
@@ -50,9 +66,17 @@ spec:
       replicas: 4
       template:
         spec:
+          volumes:
+            - name: shm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 8Gi
           containers:
             - name: worker
               image: mpioperator/mpi-pi:openmpi
+              volumeMounts:
+                - name: shm
+                  mountPath: /dev/shm
               resources:
                 limits:
                   nvidia.com/gpu: 2

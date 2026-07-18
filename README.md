@@ -95,6 +95,7 @@ upcoming baseline/ignore mechanism is a set of these fingerprints.
 | `job-no-deadline` | warning  | a GPU `Job` or `CronJob` sets no `activeDeadlineSeconds`, so a hung run holds its GPUs indefinitely |
 | `model-server-no-probes` | warning | a known inference server (vLLM, Triton, TGI, TorchServe, SGLang, Ollama, KServe, NIM, LMDeploy) has no `readinessProbe`, so traffic arrives minutes before the model finishes loading |
 | `distributed-training-no-gang-scheduling` | warning | a multi-replica GPU training job (PyTorchJob, TFJob, MPIJob, XGBoostJob, PaddleJob) has no visible gang-scheduling config (`runPolicy.schedulingPolicy`, Kueue/KAI/YuniKorn queue labels, Volcano/coscheduling scheduler or annotations) — replicas can deadlock holding GPUs |
+| `shm-too-small` | warning | a GPU container has no memory-backed `/dev/shm` (`emptyDir` with `medium: Memory`); the 64 MB default makes PyTorch DataLoader workers and NCCL crash with cryptic shared-memory errors |
 
 More GPU-waste rules (idle notebooks, missing gang scheduling, missing
 probes/HPA/PDB, topology-unaware training, GPU node pools without

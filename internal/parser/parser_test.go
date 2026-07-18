@@ -308,3 +308,33 @@ spec:
 		t.Error("Raw does not expose the container's readinessProbe field")
 	}
 }
+
+func TestPodSpecs(t *testing.T) {
+	objs := parse(t, `
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: d}
+spec:
+  template:
+    spec:
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+      containers:
+        - name: app
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+`)
+	specs := objs[0].PodSpecs()
+	if len(specs) != 1 {
+		t.Fatalf("got %d pod specs, want 1", len(specs))
+	}
+	if _, ok := specs[0].Raw["volumes"]; !ok {
+		t.Error("PodSpec.Raw does not expose pod-level volumes")
+	}
+	if len(specs[0].Containers) != 1 || specs[0].Containers[0].Name != "app" {
+		t.Errorf("PodSpec.Containers = %+v, want the app container", specs[0].Containers)
+	}
+}

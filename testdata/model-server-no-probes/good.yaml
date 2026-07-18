@@ -16,11 +16,19 @@ spec:
       labels:
         app: chat-api
     spec:
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
       containers:
         - name: server
           image: vllm/vllm-openai:v0.5.0
           ports:
             - containerPort: 8000
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
           startupProbe:
             httpGet:
               path: /health
@@ -66,9 +74,17 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
       containers:
         - name: scorer
           image: vllm/vllm-openai:v0.5.0
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
           resources:
             limits:
               nvidia.com/gpu: 1

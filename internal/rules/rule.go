@@ -68,5 +68,6 @@ func All() []Rule {
 		JobNoDeadline{},
 		ModelServerNoProbes{},
 		DistributedTrainingNoGangScheduling{},
+		ShmTooSmall{},
 	}
 }

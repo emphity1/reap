@@ -11,9 +11,17 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
       containers:
         - name: trainer
           image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
           resources:
             limits:
               nvidia.com/gpu: 4
@@ -31,9 +39,17 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          volumes:
+            - name: shm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 2Gi
           containers:
             - name: embed
               image: ghcr.io/example/embedder:1.2
+              volumeMounts:
+                - name: shm
+                  mountPath: /dev/shm
               resources:
                 limits:
                   nvidia.com/gpu: 1

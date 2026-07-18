@@ -69,12 +69,20 @@ var podSpecPaths = map[string][]string{
 	"CronJob":     {"spec", "jobTemplate", "spec", "template", "spec"},
 }
 
-// Containers returns every container and initContainer the object defines.
-// Core workload kinds are read at their known pod-spec paths; any other kind
-// (CRDs such as PyTorchJob or MPIJob) is searched for nested
-// template.spec.containers blocks, which covers the replica-spec layout those
-// CRDs embed pod templates in.
-func (o Object) Containers() []Container {
+// PodSpec is one pod spec found inside the object, with pod-level fields
+// (volumes, nodeSelector, tolerations, affinity, ...) reachable through Raw
+// and its containers already normalized.
+type PodSpec struct {
+	Raw        map[string]any
+	Containers []Container
+}
+
+// PodSpecs returns every pod spec the object defines. Core workload kinds
+// are read at their known pod-spec paths; any other kind (CRDs such as
+// PyTorchJob or MPIJob) is searched for nested template.spec.containers
+// blocks, which covers the replica-spec layout those CRDs embed pod
+// templates in.
+func (o Object) PodSpecs() []PodSpec {
 	var specs []map[string]any
 	if path, ok := podSpecPaths[o.Kind]; ok {
 		if spec, ok := dig(o.Raw, path...); ok {
@@ -83,10 +91,22 @@ func (o Object) Containers() []Container {
 	} else if spec, ok := o.Raw["spec"].(map[string]any); ok {
 		specs = findPodSpecs(spec)
 	}
-	var out []Container
+	out := make([]PodSpec, 0, len(specs))
 	for _, spec := range specs {
-		out = append(out, containersFrom(spec, "containers", false)...)
-		out = append(out, containersFrom(spec, "initContainers", true)...)
+		ps := PodSpec{Raw: spec}
+		ps.Containers = append(ps.Containers, containersFrom(spec, "containers", false)...)
+		ps.Containers = append(ps.Containers, containersFrom(spec, "initContainers", true)...)
+		out = append(out, ps)
+	}
+	return out
+}
+
+// Containers returns every container and initContainer across the object's
+// pod specs.
+func (o Object) Containers() []Container {
+	var out []Container
+	for _, ps := range o.PodSpecs() {
+		out = append(out, ps.Containers...)
 	}
 	return out
 }
