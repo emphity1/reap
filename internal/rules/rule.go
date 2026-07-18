@@ -48,7 +48,8 @@ type Finding struct {
 	Severity  Severity
 	Message   string // human-readable, actionable, cost-aware when possible
 	ObjectRef string // Kind/Namespace/Name of the offending object
-	Source    string // file the object came from ("stdin" for piped input)
+	Detail    string // semantic sub-location (e.g. "container/resource"); part of the finding's identity, so use names, never positional indices
+	Source    string // file the object came from ("stdin" for piped input); metadata, not identity
 	Fix       string // suggested remediation, empty if none
 }
 

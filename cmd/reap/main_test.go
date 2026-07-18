@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -98,5 +99,45 @@ func TestRun(t *testing.T) {
 				t.Errorf("stderr missing %q:\n%s", tt.wantStderr, stderr.String())
 			}
 		})
+	}
+}
+
+func TestRunJSONFormat(t *testing.T) {
+	var stdout, stderr strings.Builder
+	exit := run([]string{"-format=json", badFixture}, strings.NewReader(""), &stdout, &stderr)
+	if exit != 1 {
+		t.Fatalf("exit = %d, want 1\nstderr:\n%s", exit, stderr.String())
+	}
+	var out struct {
+		Version string `json:"version"`
+		Summary struct {
+			Findings int `json:"findings"`
+		} `json:"summary"`
+		Findings []struct {
+			RuleID      string `json:"ruleId"`
+			Fingerprint string `json:"fingerprint"`
+		} `json:"findings"`
+	}
+	if err := json.Unmarshal([]byte(stdout.String()), &out); err != nil {
+		t.Fatalf("stdout is not valid JSON: %v\n%s", err, stdout.String())
+	}
+	if out.Summary.Findings != 3 || len(out.Findings) != 3 {
+		t.Fatalf("got %d findings (summary %d), want 3", len(out.Findings), out.Summary.Findings)
+	}
+	for _, f := range out.Findings {
+		if len(f.Fingerprint) != 16 {
+			t.Errorf("fingerprint %q has length %d, want 16", f.Fingerprint, len(f.Fingerprint))
+		}
+	}
+}
+
+func TestRunInvalidFormat(t *testing.T) {
+	var stdout, stderr strings.Builder
+	exit := run([]string{"-format=xml", goodFixture}, strings.NewReader(""), &stdout, &stderr)
+	if exit != 2 {
+		t.Fatalf("exit = %d, want 2", exit)
+	}
+	if !strings.Contains(stderr.String(), "xml") {
+		t.Errorf("stderr should name the invalid format:\n%s", stderr.String())
 	}
 }

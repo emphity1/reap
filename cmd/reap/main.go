@@ -43,11 +43,22 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	failOn := fs.String("fail-on", "warning",
 		"exit non-zero on findings at or above this severity: info, warning, error, or none")
+	format := fs.String("format", "text", "output format: text or json")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
 	if fs.NArg() == 0 {
 		fs.Usage()
+		return 2
+	}
+	var reporter report.Reporter
+	switch *format {
+	case "text":
+		reporter = report.Text{}
+	case "json":
+		reporter = report.JSON{}
+	default:
+		fmt.Fprintf(stderr, "reap: -format: unknown format %q (valid: text, json)\n", *format)
 		return 2
 	}
 	var threshold rules.Severity
@@ -67,7 +78,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	findings := engine.Run(objs, rules.All())
 	res := report.Result{Findings: findings, ObjectsChecked: len(objs)}
-	if err := (report.Text{}).Report(stdout, res); err != nil {
+	if err := reporter.Report(stdout, res); err != nil {
 		fmt.Fprintf(stderr, "reap: %v\n", err)
 		return 2
 	}

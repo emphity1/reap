@@ -50,6 +50,43 @@ reap: 2 object(s) checked, 1 finding(s): 1 error, 0 warning, 0 info
 The threshold is set with `-fail-on` (`info`, `warning`, `error`, or `none`
 to always exit 0); the default is `warning`.
 
+### JSON output
+
+`-format json` emits a machine-readable report (schema version `1`):
+
+```json
+{
+  "version": "1",
+  "summary": {
+    "objectsChecked": 2,
+    "findings": 1,
+    "bySeverity": {"error": 1, "warning": 0, "info": 0}
+  },
+  "findings": [
+    {
+      "ruleId": "no-gpu-limit",
+      "severity": "error",
+      "message": "container \"server\" requests nvidia.com/gpu: 1 but sets no limit; ...",
+      "object": "Deployment/ml/llm-inference",
+      "detail": "server/nvidia.com/gpu",
+      "source": "manifests/app.yaml",
+      "fix": "set resources.limits[\"nvidia.com/gpu\"] equal to the request",
+      "fingerprint": "c3c88f7fa45669b8"
+    }
+  ]
+}
+```
+
+`fingerprint` is the finding's **stable identity**: a hash of the rule ID, the
+object reference (`Kind/Namespace/Name`), and a semantic detail key (container
+and resource names — never positional indices). Message wording, severity,
+suggested fix, and **file path are metadata and never enter the hash**, so the
+same chart produces the same fingerprint whether linted from a file or piped
+through stdin, and fingerprints survive copy edits and file moves. Identical
+logical findings from different files (e.g. two overlays defining the same
+object with the same violation) deliberately share one fingerprint. The
+upcoming baseline/ignore mechanism is a set of these fingerprints.
+
 ## Rules
 
 | ID                | Severity | Checks                                                                 |

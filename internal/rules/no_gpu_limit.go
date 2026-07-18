@@ -39,6 +39,7 @@ func (r NoGPULimit) Check(obj parser.Object) []Finding {
 				Severity:  r.Severity(),
 				Message:   msg,
 				ObjectRef: obj.Ref(),
+				Detail:    c.Name + "/" + res,
 				Source:    obj.Source,
 				Fix:       fmt.Sprintf("set resources.limits[%q] equal to the request", res),
 			})
