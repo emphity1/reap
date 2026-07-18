@@ -18,6 +18,14 @@ cd reap
 make build   # produces bin/reap
 ```
 
+Or use the Docker image (distroless, ~5 MB):
+
+```sh
+make docker                                        # builds reap:dev
+docker run --rm -v "$PWD:/work:ro" reap:dev /work  # lint a directory
+helm template . | docker run --rm -i reap:dev -    # lint rendered charts
+```
+
 ## Usage
 
 ```sh
@@ -85,7 +93,25 @@ same chart produces the same fingerprint whether linted from a file or piped
 through stdin, and fingerprints survive copy edits and file moves. Identical
 logical findings from different files (e.g. two overlays defining the same
 object with the same violation) deliberately share one fingerprint. The
-upcoming baseline/ignore mechanism is a set of these fingerprints.
+baseline mechanism is a set of these fingerprints.
+
+### Adopting reap on an existing repo (baseline)
+
+Existing repos have existing findings. Accept them once, then gate CI only on
+*new* problems:
+
+```sh
+reap -write-baseline .reap-baseline.json ./manifests/   # day one: accept the past
+reap -baseline .reap-baseline.json ./manifests/         # from then on: only new findings fail
+```
+
+The baseline file is JSON — fingerprints plus human-readable context and an
+optional `reason` field per entry; commit it to the repo. Suppressed findings
+are hidden from the output and the exit-code gate, and the summary reports
+both how many were suppressed and how many baseline entries went **stale**
+(matched nothing — fixed for real, so prune them). `-baseline` and
+`-write-baseline` are mutually exclusive; to refresh a baseline, run
+`-write-baseline` again.
 
 ## Rules
 

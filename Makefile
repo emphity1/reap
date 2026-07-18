@@ -1,6 +1,7 @@
 BINARY ?= bin/reap
+IMAGE  ?= reap:dev
 
-.PHONY: build test lint fmt clean
+.PHONY: build test lint fmt clean docker
 
 build:
 	go build -o $(BINARY) ./cmd/reap
@@ -17,6 +18,9 @@ lint:
 
 fmt:
 	gofmt -w .
+
+docker:
+	docker build -t $(IMAGE) .
 
 clean:
 	rm -rf bin
