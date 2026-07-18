@@ -46,12 +46,16 @@ func (o Object) Lookup(path ...string) (any, bool) {
 
 // Container is a normalized view over a container or initContainer.
 // Resource quantities are rendered as strings regardless of how YAML typed
-// them (nvidia.com/gpu: 1 and nvidia.com/gpu: "1" compare equal).
+// them (nvidia.com/gpu: 1 and nvidia.com/gpu: "1" compare equal). Raw holds
+// the full container map so rules can inspect fields the parser does not
+// model (probes, ports, volumeMounts, env).
 type Container struct {
 	Name     string
+	Image    string
 	Init     bool
 	Requests map[string]string
 	Limits   map[string]string
+	Raw      map[string]any
 }
 
 // podSpecPaths locates the pod spec inside the core workload kinds.
@@ -135,8 +139,9 @@ func containersFrom(spec map[string]any, key string, init bool) []Container {
 		if !ok {
 			continue
 		}
-		c := Container{Init: init}
+		c := Container{Init: init, Raw: cm}
 		c.Name, _ = cm["name"].(string)
+		c.Image, _ = cm["image"].(string)
 		if res, ok := cm["resources"].(map[string]any); ok {
 			c.Requests = quantities(res["requests"])
 			c.Limits = quantities(res["limits"])

@@ -66,5 +66,6 @@ func All() []Rule {
 	return []Rule{
 		NoGPULimit{},
 		JobNoDeadline{},
+		ModelServerNoProbes{},
 	}
 }

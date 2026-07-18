@@ -1,0 +1,54 @@
+# Failing fixtures for the model-server-no-probes rule.
+#
+# A vLLM server with no probes at all: Kubernetes routes traffic the moment
+# the container starts, minutes before the weights finish loading.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-api
+  namespace: ml
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chat-api
+  template:
+    metadata:
+      labels:
+        app: chat-api
+    spec:
+      containers:
+        - name: server
+          image: vllm/vllm-openai:v0.5.0
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+---
+# Triton with only a liveness probe: still nothing tells Kubernetes when the
+# server is actually ready to answer.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triton
+  namespace: ml
+spec:
+  selector:
+    matchLabels:
+      app: triton
+  template:
+    metadata:
+      labels:
+        app: triton
+    spec:
+      containers:
+        - name: triton
+          image: nvcr.io/nvidia/tritonserver:24.05-py3
+          livenessProbe:
+            httpGet:
+              path: /v2/health/live
+              port: 8000
+          resources:
+            limits:
+              nvidia.com/gpu: 1

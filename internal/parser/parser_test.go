@@ -281,3 +281,30 @@ spec:
 		t.Error(`Lookup through a non-map value reported ok, want false`)
 	}
 }
+
+func TestContainerImageAndRaw(t *testing.T) {
+	objs := parse(t, `
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: d}
+spec:
+  template:
+    spec:
+      containers:
+        - name: server
+          image: vllm/vllm-openai:v0.5.0
+          readinessProbe:
+            httpGet: {path: /health, port: 8000}
+`)
+	containers := objs[0].Containers()
+	if len(containers) != 1 {
+		t.Fatalf("got %d containers, want 1", len(containers))
+	}
+	c := containers[0]
+	if c.Image != "vllm/vllm-openai:v0.5.0" {
+		t.Errorf("Image = %q, want %q", c.Image, "vllm/vllm-openai:v0.5.0")
+	}
+	if _, ok := c.Raw["readinessProbe"]; !ok {
+		t.Error("Raw does not expose the container's readinessProbe field")
+	}
+}

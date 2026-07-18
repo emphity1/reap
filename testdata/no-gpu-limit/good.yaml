@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: server
-          image: vllm/vllm-openai:v0.5.0
+          image: ghcr.io/example/llm-api:1.0
           resources:
             requests:
               cpu: "4"

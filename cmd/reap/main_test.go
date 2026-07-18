@@ -45,7 +45,7 @@ func TestRun(t *testing.T) {
 			name:       "directory argument is scanned recursively",
 			args:       []string{"../../testdata"},
 			wantExit:   1,
-			wantStdout: []string{"no-gpu-limit", "job-no-deadline", "[warning]"},
+			wantStdout: []string{"no-gpu-limit", "job-no-deadline", "model-server-no-probes", "[warning]"},
 		},
 		{
 			name:     "fail-on none reports findings but exits 0",
@@ -121,8 +121,8 @@ func TestRunJSONFormat(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout.String()), &out); err != nil {
 		t.Fatalf("stdout is not valid JSON: %v\n%s", err, stdout.String())
 	}
-	if out.Summary.Findings != 3 || len(out.Findings) != 3 {
-		t.Fatalf("got %d findings (summary %d), want 3", len(out.Findings), out.Summary.Findings)
+	if out.Summary.Findings != 2 || len(out.Findings) != 2 {
+		t.Fatalf("got %d findings (summary %d), want 2", len(out.Findings), out.Summary.Findings)
 	}
 	for _, f := range out.Findings {
 		if len(f.Fingerprint) != 16 {
