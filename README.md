@@ -113,6 +113,25 @@ both how many were suppressed and how many baseline entries went **stale**
 `-write-baseline` are mutually exclusive; to refresh a baseline, run
 `-write-baseline` again.
 
+## CI
+
+GitHub Actions — this repo doubles as an action:
+
+```yaml
+- uses: emphity1/reap@main
+  with:
+    path: ./manifests/
+    fail-on: warning
+    # baseline: .reap-baseline.json
+```
+
+GitLab CI — copy the job from
+[`docs/ci/gitlab-ci.yml`](docs/ci/gitlab-ci.yml).
+
+Releases are built by GoReleaser on version tags (`v*`): prebuilt binaries
+for Linux, macOS, and Windows (amd64/arm64) appear on the
+[Releases](https://github.com/emphity1/reap/releases) page.
+
 ## Rules
 
 | ID                | Severity | Checks                                                                 |

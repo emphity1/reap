@@ -1,0 +1,40 @@
+name: reap
+description: >-
+  Lint Kubernetes manifests for GPU waste and ML workload misconfigurations.
+  Fails the job when findings at or above the threshold are present.
+branding:
+  icon: search
+  color: green
+
+inputs:
+  path:
+    description: File, directory, or "-" for stdin to lint
+    default: "."
+  fail-on:
+    description: "Severity threshold that fails the job: info, warning, error, or none"
+    default: warning
+  baseline:
+    description: Path to a .reap-baseline.json of accepted findings (empty to disable)
+    default: ""
+  version:
+    description: reap version to install (a git tag, or "latest")
+    default: latest
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v5
+      with:
+        go-version: stable
+        cache: false
+    - name: Install reap
+      shell: bash
+      run: go install github.com/emphity1/reap/cmd/reap@${{ inputs.version }}
+    - name: Run reap
+      shell: bash
+      run: |
+        args=(-fail-on "${{ inputs.fail-on }}")
+        if [ -n "${{ inputs.baseline }}" ]; then
+          args+=(-baseline "${{ inputs.baseline }}")
+        fi
+        "$(go env GOPATH)/bin/reap" "${args[@]}" "${{ inputs.path }}"

@@ -1,0 +1,29 @@
+# Copy this job into your .gitlab-ci.yml (or include: this file) to lint
+# Kubernetes manifests for GPU waste on every pipeline.
+#
+# Exit codes map to job status: findings at/above -fail-on fail the job.
+# On an existing repo, commit a baseline first:
+#   reap -write-baseline .reap-baseline.json ./manifests/
+# and add `-baseline .reap-baseline.json` below so only NEW findings fail.
+
+reap:
+  stage: test
+  image: golang:1.23
+  variables:
+    GOFLAGS: -buildvcs=false
+  script:
+    - go install github.com/emphity1/reap/cmd/reap@latest
+    - $(go env GOPATH)/bin/reap -fail-on warning ./manifests/
+  rules:
+    - changes:
+        - "**/*.yaml"
+        - "**/*.yml"
+
+# Helm users: render first, lint the output.
+#
+# reap-helm:
+#   stage: test
+#   image: golang:1.23
+#   script:
+#     - go install github.com/emphity1/reap/cmd/reap@latest
+#     - helm template ./chart | $(go env GOPATH)/bin/reap -
