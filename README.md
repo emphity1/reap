@@ -37,14 +37,18 @@ helm template . | reap -
 kustomize build . | reap -
 ```
 
-Example output:
+Example output (severity-colored on a terminal; `-color auto|always|never`,
+`NO_COLOR` respected):
 
 ```
-testdata/no-gpu-limit/bad.yaml: Deployment/ml/llm-inference
-  [error] no-gpu-limit: container "server" requests nvidia.com/gpu: 1 but sets no limit; Kubernetes rejects GPU requests without an equal limit, so this manifest will not deploy
+testdata/no-gpu-limit/bad.yaml
+  Deployment/ml/llm-inference
+    [error] no-gpu-limit
+        container "server" requests nvidia.com/gpu: 1 but sets no limit; Kubernetes rejects GPU
+        requests without an equal limit, so this manifest will not deploy
         fix: set resources.limits["nvidia.com/gpu"] equal to the request
 
-reap: 2 object(s) checked, 1 finding(s): 1 error, 0 warning, 0 info
+reap: 2 objects checked, 1 finding (1 error, 0 warning, 0 info)
 ```
 
 ### Exit codes

@@ -35,6 +35,20 @@ func main() {
 	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }
 
+// isTerminal reports whether the writer is an interactive terminal, so
+// -color=auto stays plain when output is piped or captured.
+func isTerminal(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	if !ok {
+		return false
+	}
+	info, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeCharDevice != 0
+}
+
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("reap", flag.ContinueOnError)
 	fs.SetOutput(stderr)
@@ -45,6 +59,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	failOn := fs.String("fail-on", "warning",
 		"exit non-zero on findings at or above this severity: info, warning, error, or none")
 	format := fs.String("format", "text", "output format: text or json")
+	color := fs.String("color", "auto", "colorize text output: auto, always, or never")
 	baselinePath := fs.String("baseline", "",
 		"baseline file of accepted findings to suppress (see -write-baseline)")
 	writeBaseline := fs.String("write-baseline", "",
@@ -56,10 +71,22 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		fs.Usage()
 		return 2
 	}
+	var colorOn bool
+	switch *color {
+	case "always":
+		colorOn = true
+	case "never":
+		colorOn = false
+	case "auto":
+		colorOn = isTerminal(stdout) && os.Getenv("NO_COLOR") == ""
+	default:
+		fmt.Fprintf(stderr, "reap: -color: unknown value %q (valid: auto, always, never)\n", *color)
+		return 2
+	}
 	var reporter report.Reporter
 	switch *format {
 	case "text":
-		reporter = report.Text{}
+		reporter = report.Text{Color: colorOn}
 	case "json":
 		reporter = report.JSON{}
 	default:

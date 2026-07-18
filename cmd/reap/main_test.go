@@ -193,3 +193,29 @@ func TestBaselineFlow(t *testing.T) {
 		t.Errorf("baseline together with write-baseline: exit = %d, want 2", exit)
 	}
 }
+
+func TestColorFlag(t *testing.T) {
+	var out, errOut strings.Builder
+	if exit := run([]string{"-color=always", badFixture}, strings.NewReader(""), &out, &errOut); exit != 1 {
+		t.Fatalf("exit = %d, want 1", exit)
+	}
+	if !strings.Contains(out.String(), "\x1b[31m") {
+		t.Errorf("-color=always output has no ANSI codes:\n%q", out.String())
+	}
+	out.Reset()
+	if exit := run([]string{"-color=never", badFixture}, strings.NewReader(""), &out, &errOut); exit != 1 {
+		t.Fatalf("exit = %d, want 1", exit)
+	}
+	if strings.Contains(out.String(), "\x1b[") {
+		t.Errorf("-color=never output contains ANSI codes:\n%q", out.String())
+	}
+	// auto on a non-TTY writer (this test) must not color
+	out.Reset()
+	run([]string{badFixture}, strings.NewReader(""), &out, &errOut)
+	if strings.Contains(out.String(), "\x1b[") {
+		t.Errorf("auto color on non-TTY output contains ANSI codes:\n%q", out.String())
+	}
+	if exit := run([]string{"-color=rainbow", badFixture}, strings.NewReader(""), &out, &errOut); exit != 2 {
+		t.Errorf("invalid -color value: exit = %d, want 2", exit)
+	}
+}
