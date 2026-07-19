@@ -1,0 +1,31 @@
+# Regression fixture for the detector false positive found by dogfooding:
+# kserve/kserve-controller matched the old bare "kserve/" pattern, flagging
+# the KServe control plane as a model server on a stock chart render. This
+# Deployment must produce zero findings; it deliberately has no probes and
+# no HPA/PDB so that any detector regression fires visibly (probes rule and
+# both set-level rules) instead of passing silently.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kserve-controller-manager
+  namespace: kserve-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: kserve-controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: kserve-controller-manager
+    spec:
+      containers:
+        - name: manager
+          image: kserve/kserve-controller:v0.19.0
+          resources:
+            requests:
+              cpu: 100m
+              memory: 300Mi
+            limits:
+              cpu: 100m
+              memory: 300Mi

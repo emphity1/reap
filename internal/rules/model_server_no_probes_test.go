@@ -216,10 +216,20 @@ func TestIsModelServerImage(t *testing.T) {
 		{"lmsysorg/sglang:v0.2.0", true},
 		{"ollama/ollama:0.3.0", true},
 		{"kserve/sklearnserver:v0.13.0", true},
+		{"kserve/xgbserver:latest", true},
+		{"kserve/lgbserver:latest", true},
+		{"kserve/pmmlserver:latest", true},
+		{"kserve/paddleserver:latest", true},
+		{"kserve/huggingfaceserver:latest-gpu", true},
 		{"nvcr.io/nim/meta/llama3-8b-instruct:1.0", true},
 		{"nginx:1.27", false},
 		{"pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime", false},
 		{"rayproject/ray:2.32.0", false}, // generic Ray image: also used for training, deliberately not matched
+		// KServe control plane, not model servers: the dogfood run caught a
+		// bare "kserve/" pattern flagging the operator's own controller.
+		{"kserve/kserve-controller:v0.19.0", false},
+		{"kserve/storage-initializer:v0.19.0", false},
+		{"kserve/kserve-agent:v0.19.0", false},
 	} {
 		got, _ := IsModelServerImage(tt.image)
 		if got != tt.want {

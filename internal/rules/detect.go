@@ -18,7 +18,18 @@ var modelServerImagePatterns = []string{
 	"torchserve",
 	"sglang",
 	"ollama",
-	"kserve/",
+	// KServe's own serving runtimes, per config/runtimes/kustomization.yaml
+	// upstream. A bare "kserve/" would also match the control plane
+	// (kserve/kserve-controller, kserve/storage-initializer) — the dogfood
+	// run caught exactly that false positive on a stock chart render. The
+	// remaining runtimes KServe ships resolve to images covered by other
+	// patterns (nvcr.io/nvidia/tritonserver, pytorch/torchserve-kfs).
+	"kserve/sklearnserver",
+	"kserve/xgbserver",
+	"kserve/lgbserver",
+	"kserve/pmmlserver",
+	"kserve/paddleserver",
+	"kserve/huggingfaceserver",
 	"nvcr.io/nim",
 	"lmdeploy",
 }

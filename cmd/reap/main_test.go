@@ -15,12 +15,13 @@ const (
 
 func TestRun(t *testing.T) {
 	tests := []struct {
-		name       string
-		args       []string
-		stdin      string
-		wantExit   int
-		wantStdout []string // substrings that must appear on stdout
-		wantStderr string   // substring that must appear on stderr, if any
+		name          string
+		args          []string
+		stdin         string
+		wantExit      int
+		wantStdout    []string // substrings that must appear on stdout
+		wantNotStdout []string // substrings that must NOT appear on stdout
+		wantStderr    string   // substring that must appear on stderr, if any
 	}{
 		{
 			name:       "failing manifest exits 1 and reports the finding",
@@ -42,10 +43,16 @@ func TestRun(t *testing.T) {
 			wantStdout: []string{"no-gpu-limit", "stdin"},
 		},
 		{
-			name:       "directory argument is scanned recursively",
-			args:       []string{"../../testdata"},
-			wantExit:   1,
-			wantStdout: []string{"no-gpu-limit", "job-no-deadline", "model-server-no-probes", "distributed-training-no-gang-scheduling", "shm-too-small", "gpu-no-node-targeting", "multinode-no-topology-affinity", "notebook-no-idle-culling", "inference-no-hpa", "no-pdb", "[warning]", "[info]"},
+			name:     "directory argument is scanned recursively",
+			args:     []string{"../../testdata"},
+			wantExit: 1,
+			wantStdout: []string{"no-gpu-limit", "job-no-deadline", "model-server-no-probes", "distributed-training-no-gang-scheduling", "shm-too-small", "gpu-no-node-targeting", "multinode-no-topology-affinity", "notebook-no-idle-culling", "inference-no-hpa", "no-pdb", "[warning]", "[info]",
+				// Pod specs nested in arrays (RayCluster workerGroupSpecs)
+				// must be visible: dogfood regression.
+				"RayCluster/ray-shm/array-gpu-workers"},
+			// The KServe control plane must not be detected as a model
+			// server: dogfood regression.
+			wantNotStdout: []string{"kserve-controller"},
 		},
 		{
 			name:       "info findings do not fail the default warning threshold",
@@ -105,6 +112,11 @@ func TestRun(t *testing.T) {
 			for _, want := range tt.wantStdout {
 				if !strings.Contains(stdout.String(), want) {
 					t.Errorf("stdout missing %q:\n%s", want, stdout.String())
+				}
+			}
+			for _, notWant := range tt.wantNotStdout {
+				if strings.Contains(stdout.String(), notWant) {
+					t.Errorf("stdout must not contain %q:\n%s", notWant, stdout.String())
 				}
 			}
 			if tt.wantStderr != "" && !strings.Contains(stderr.String(), tt.wantStderr) {
