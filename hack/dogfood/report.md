@@ -288,3 +288,55 @@ SHA): the AMD/ROCm example Deployment lacks the liveness/readiness probes
 the NVIDIA example has, on the same `/health:8000` endpoint. A 12-line
 patch mirroring the NVIDIA probes verbatim applies cleanly; PR to be
 opened from a fork (fix-first framing).
+
+---
+
+# Second verification addendum (pre-launch checks)
+
+## Reproduction from a clean state
+
+`_dogfood/` deleted entirely, `fetch.sh` re-run from zero: all 30 inputs
+fetched and rendered with no failures and no GPU-sanity warnings — every
+pinned source is still available. On the original 27-input corpus the
+fresh numbers are: 27 inputs, 278 objects, 26 findings — identical — but
+the severity split is **0 error / 8 warning / 18 info** and clean default
+renders are **10 of 12**. The headline table above documents the
+*pre-fix* v0.1.0 run (7/19 and 9/12): the fixes removed the two KServe
+info FPs and surfaced one warning + one info on the previously-invisible
+Ray worker. Per-rule totals reconcile exactly with the deltas recorded in
+"Numbers after the fixes" (shm 5→6, node-targeting 5→6, no-pdb 7→6,
+inference-no-hpa 6→5). Anyone reproducing today should expect the
+post-fix numbers.
+
+## Second retraction: the Ray shm findings are operator-injected — FP
+
+Verifying an upstream-docs citation for the launch post, we read the
+KubeRay operator source instead of the docs — and it overturns both Ray
+`shm-too-small` findings. `ray-operator/controllers/ray/common/pod.go`
+**injects a memory-backed emptyDir at `/dev/shm` into every pod it builds**
+from a RayCluster/RayJob: unconditionally at v1.4.2, and at master skipped
+only when the user sets an explicit `plasma-directory`:
+
+    // Add /dev/shm volumeMount for the object store to avoid performance degradation.
+    // Skip injection when users explicitly set plasma-directory.
+
+So the manifest-level absence reap flags on Ray kinds is present at
+system level, exactly like the vllm-stack `tensorParallelSize` case. Both
+"true positives" on Ray inputs (ray-cluster.gpu chart render,
+`ray-job.batch-inference` sample) are **retracted → system-level FP**.
+The `gpu-no-node-targeting` finding on the same render stands: the
+operator does not inject scheduling config.
+
+Revised shm-too-small verdict mix: **1 TP (MPIJob — mpi-operator has zero
+shm handling, verified), 2 retracted (Ray kinds), 3 debatable (ollama,
+triton, vllm-stack)**.
+
+**Action queued before the launch post:** exclude Ray CRD kinds
+(RayCluster/RayJob/RayService) from `shm-too-small`, with the same
+rationale the gang rule already documents for excluding Ray kinds
+(operator-level behavior invisible in the manifest). Until then reap
+emits a known FP on every GPU Ray manifest — the exact first-user
+experience the launch cannot afford. The parser regression fixture
+`testdata/shm-too-small/bad-raycluster.yaml` asserts this very firing and
+must move to a different rule (node-targeting) or kind when the rule is
+fixed.

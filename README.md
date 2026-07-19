@@ -110,7 +110,9 @@ to always exit 0); the default is `warning`.
   "summary": {
     "objectsChecked": 2,
     "findings": 1,
-    "bySeverity": {"error": 1, "warning": 0, "info": 0}
+    "bySeverity": {"error": 1, "warning": 0, "info": 0},
+    "suppressed": 0,
+    "staleBaselineEntries": 0
   },
   "findings": [
     {
@@ -160,7 +162,7 @@ both how many were suppressed and how many baseline entries went **stale**
 GitHub Actions — this repo doubles as an action:
 
 ```yaml
-- uses: emphity1/reap@v0.2.0
+- uses: emphity1/reap@v0.2.1
   with:
     path: ./manifests/
     fail-on: warning
