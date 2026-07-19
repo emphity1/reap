@@ -49,7 +49,7 @@ func TestRun(t *testing.T) {
 			wantStdout: []string{"no-gpu-limit", "job-no-deadline", "model-server-no-probes", "distributed-training-no-gang-scheduling", "shm-too-small", "gpu-no-node-targeting", "multinode-no-topology-affinity", "notebook-no-idle-culling", "inference-no-hpa", "no-pdb", "[warning]", "[info]",
 				// Pod specs nested in arrays (RayCluster workerGroupSpecs)
 				// must be visible: dogfood regression.
-				"RayCluster/ray-shm/array-gpu-workers"},
+				"RayCluster/ray-array/array-gpu-workers"},
 			// The KServe control plane must not be detected as a model
 			// server: dogfood regression.
 			wantNotStdout: []string{"kserve-controller"},

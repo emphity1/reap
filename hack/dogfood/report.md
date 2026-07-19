@@ -340,3 +340,16 @@ experience the launch cannot afford. The parser regression fixture
 `testdata/shm-too-small/bad-raycluster.yaml` asserts this very firing and
 must move to a different rule (node-targeting) or kind when the rule is
 fixed.
+
+## Action completed: Ray kinds excluded from shm-too-small
+
+Implemented TDD (red test observed on a GPU RayCluster, then a group
+guard on `ray.io` in the rule, documented with the operator citation).
+The parser regression fixture moved to
+`testdata/gpu-no-node-targeting/bad-raycluster.yaml` and now proves
+array visibility through `gpu-no-node-targeting` (exactly one finding).
+Dogfood re-run on the original 27-input corpus, post-exclusion canonical
+numbers: **24 findings — 0 error / 6 warning / 18 info**; ray-cluster.gpu
+drops to 1 (the node-targeting info, which stands), the RayJob
+batch-inference sample drops to 0. These are the numbers a reproduction
+should match from this commit onward.

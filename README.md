@@ -53,8 +53,8 @@ go install github.com/emphity1/reap/cmd/reap@latest
 git clone https://github.com/emphity1/reap.git && cd reap && make build
 
 # as a Docker image (distroless, ~5 MB, amd64/arm64)
-docker run --rm -v "$PWD:/work:ro" ghcr.io/emphity1/reap:v0.2.1 /work
-helm template . | docker run --rm -i ghcr.io/emphity1/reap:v0.2.1 -
+docker run --rm -v "$PWD:/work:ro" ghcr.io/emphity1/reap:v0.2.2 /work
+helm template . | docker run --rm -i ghcr.io/emphity1/reap:v0.2.2 -
 ```
 
 Images are published to [GHCR](https://github.com/emphity1/reap/pkgs/container/reap)
@@ -162,7 +162,7 @@ both how many were suppressed and how many baseline entries went **stale**
 GitHub Actions — this repo doubles as an action:
 
 ```yaml
-- uses: emphity1/reap@v0.2.1
+- uses: emphity1/reap@v0.2.2
   with:
     path: ./manifests/
     fail-on: warning
@@ -193,7 +193,7 @@ harness and its findings live in [`hack/dogfood/`](hack/dogfood/).
 | `job-no-deadline` | warning  | a GPU `batch/v1` Job or CronJob sets no `activeDeadlineSeconds`, so a hung run holds its GPUs indefinitely (same-named CRD kinds, like Volcano's Job, are recognized and skipped — their schema differs) |
 | `model-server-no-probes` | warning | a known inference server (vLLM, Triton, TGI, TorchServe, SGLang, Ollama, the KServe serving runtimes, NIM, LMDeploy) has no `readinessProbe`, so traffic arrives minutes before the model finishes loading |
 | `distributed-training-no-gang-scheduling` | warning | a multi-replica GPU training job (PyTorchJob, TFJob, MPIJob, XGBoostJob, PaddleJob) has no visible gang-scheduling config (`runPolicy.schedulingPolicy`, Kueue/KAI/YuniKorn queue labels, Volcano/coscheduling scheduler or annotations) — replicas can deadlock holding GPUs |
-| `shm-too-small` | warning | a GPU container has no memory-backed `/dev/shm` (`emptyDir` with `medium: Memory`); the 64 MB default makes shared-memory users — PyTorch DataLoader workers, NCCL, Triton's Python backend — crash or stall with cryptic errors. Deliberately broad: the fix is cheap and harmless; runtimes that never touch shared memory should baseline it |
+| `shm-too-small` | warning | a GPU container has no memory-backed `/dev/shm` (`emptyDir` with `medium: Memory`); the 64 MB default makes shared-memory users — PyTorch DataLoader workers, NCCL, Triton's Python backend — crash or stall with cryptic errors. Deliberately broad: the fix is cheap and harmless; runtimes that never touch shared memory should baseline it. Ray CRDs are excluded — the KubeRay operator injects the mount itself |
 | `gpu-no-node-targeting` | info | a GPU workload sets no `nodeSelector`, node affinity, or tolerations; on clusters with tainted GPU nodes it sits `Pending` and the autoscaler won't scale the GPU pool for it |
 | `multinode-no-topology-affinity` | info | a multi-replica GPU training job expresses no placement intent (affinity, `topologySpreadConstraints`, `nodeSelector`, or topology-aware scheduler hints) — NCCL collectives fall back to the slow network path |
 | `notebook-no-idle-culling` | info | a GPU notebook (Jupyter image or Kubeflow `Notebook`) has no visible idle-culling configuration — a forgotten notebook holds its GPU all weekend |

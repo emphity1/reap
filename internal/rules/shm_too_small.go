@@ -29,6 +29,16 @@ func (ShmTooSmall) ID() string { return "shm-too-small" }
 func (ShmTooSmall) Severity() Severity { return Warning }
 
 func (r ShmTooSmall) Check(obj parser.Object) []Finding {
+	// Ray CRDs are excluded: the KubeRay operator injects a memory-backed
+	// emptyDir at /dev/shm into every pod it builds from a
+	// RayCluster/RayJob/RayService (ray-operator common/pod.go —
+	// unconditional at v1.4.2, skipped only for an explicit
+	// plasma-directory on newer versions), so the manifest-level absence
+	// is present at system level. Same rationale as the gang rule's Ray
+	// exclusion: operator-level behavior invisible in the manifest.
+	if obj.Group() == "ray.io" {
+		return nil
+	}
 	var findings []Finding
 	for _, ps := range obj.PodSpecs() {
 		if hostIPC, _ := ps.Raw["hostIPC"].(bool); hostIPC {

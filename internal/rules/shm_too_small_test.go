@@ -146,6 +146,31 @@ spec:
 			wantFindings: 1,
 		},
 		{
+			// The KubeRay operator injects a memory-backed /dev/shm into
+			// every pod it builds (ray-operator common/pod.go), so the
+			// manifest-level absence is a system-level false positive —
+			// found by the dogfood run's pre-launch verification.
+			name: "ray kinds are excluded: the operator injects shm itself",
+			doc: `
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata: {name: rc}
+spec:
+  workerGroupSpecs:
+    - groupName: gpu-workers
+      replicas: 2
+      template:
+        spec:
+          containers:
+            - name: ray-worker
+              image: rayproject/ray-ml:2.46.0
+              resources:
+                requests: {nvidia.com/gpu: 1}
+                limits: {nvidia.com/gpu: 1}
+`,
+			wantFindings: 0,
+		},
+		{
 			name: "only the gpu container in a mixed pod is flagged",
 			doc: `
 apiVersion: apps/v1
