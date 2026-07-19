@@ -54,7 +54,7 @@ Deployment twice).
 
 | Rule | Combos | Instances | Verdict mix |
 |---|---|---|---|
-| `shm-too-small` | 5 | 5 | 3 TP (vllm-stack.gpu, MPIJob, RayJob batch-inference), 2 debatable (ollama, triton) |
+| `shm-too-small` | 5 | 5 | 2 TP (MPIJob, RayJob batch-inference), 3 debatable (ollama, triton, vllm-stack — re-judged, see the verification addendum) |
 | `gpu-no-node-targeting` | 4 | 5 | 4 debatable (portable-by-intent examples); correctly suppressed on RayJob (has nodeSelector) |
 | `no-pdb` | 5 | 7 | **1 FP (kserve controller)**, 4 TP at info level |
 | `inference-no-hpa` | 4 | 6 | **1 FP (kserve controller)**, 3 TP at info level; correctly suppressed on Triton (HPA in render) |
@@ -65,9 +65,13 @@ Deployment twice).
 | `job-no-deadline` | 0 | 0 | vacuous — no `batch/v1` GPU Job in corpus |
 | `notebook-no-idle-culling` | 0 | 0 | vacuous — no GPU notebook in corpus (rule is GPU-gated) |
 
-Notable true positives worth telling users about: **the official vLLM
-production-stack chart does not mount `/dev/shm`** (its own docs page does),
-and **the AMD example in vLLM's docs has no probes** while the NVIDIA one does.
+Notable true positive worth telling users about: **the AMD example in vLLM's
+docs has no probes** while the NVIDIA one does. (An earlier draft of this
+report also claimed the production-stack chart "does not mount /dev/shm";
+upstream template inspection later showed the mount exists but is gated on
+the chart's own `tensorParallelSize` knob — see the verification addendum.
+Corrected rather than deleted, because the correction is itself a finding
+about the rule's breadth.)
 
 ## Oracle results
 
@@ -226,8 +230,61 @@ fixable by parser recursion.
 - **`shm-too-small` breadth → stays broad.** The message stops overclaiming
   PyTorch (it now names NCCL and Triton's Python backend — Triton was
   re-judged TP-leaning on that basis) and the fix names the baseline escape
-  hatch for runtimes that never use shared memory (ollama, the corpus's one
-  debatable firing).
+  hatch for runtimes that never use shared memory (ollama; vllm-stack later
+  joined the debatable set, see the verification addendum).
 - **Severity ordering** — findings sort error → warning → info within an
   object (engine-level, shared by text and JSON).
 - **Pluralization** of the write-baseline message fixed.
+
+---
+
+# Verification addendum (post-v0.2.0)
+
+## Parser fix verified by the denominator, not the findings count
+
+The 26 → 26 findings total was consistent with the fixes but proves little
+by itself. The number that demonstrates the array recursion works in
+general is what the parser *sees*. Old parser (pre-fix commit) vs v0.2.0,
+same rendered corpus:
+
+| Corpus total | before | after |
+|---|---|---|
+| pod specs | 54 | 59 |
+| containers | 59 | 64 |
+| GPU containers | 14 | 15 |
+
+Exactly four inputs changed — precisely the four with array-nested
+templates, covering both structural families of the fix: ray-cluster
+default (1→2 pod specs, CPU worker group) and gpu (1→2, **0→1 GPU
+containers** — the original blind spot), rayjob-sample (1→2), and the
+Volcano Job (0→2: it previously took the wrong typed path via the kind
+collision). No map-nested input changed (MPIJob, PyTorchJob unchanged —
+no regression), and no array-nested input in the corpus stayed invisible.
+
+## vllm-stack `shm-too-small` verdict revised: TP → debatable
+
+Preparing an upstream patch, template inspection showed the chart (already
+at tag 0.1.11) mounts `/dev/shm` **iff `vllmConfig.tensorParallelSize` is
+set** — semantically aligned with vLLM's own docs ("vLLM needs to access
+the host's shared memory for tensor parallel inference"). Our minimal GPU
+render set no `vllmConfig`, so the mount was absent and reap fired. The
+chart's gating is more nuanced than reap's deliberately broad rule; the
+finding on that render is debatable, not a chart bug. **No upstream PR** —
+it would have been wrong. Lesson recorded: verify the upstream *condition*,
+not just the rendered absence, before claiming a true positive.
+
+## Release v0.2.0 verified
+
+- `reap_0.2.0_darwin_arm64.tar.gz`: checksum matches `checksums.txt`,
+  binary runs, correct findings and exit code on fixtures.
+- `go install github.com/emphity1/reap/cmd/reap@v0.2.0`: resolves via the
+  module proxy, builds, and the installed binary contains the parser fix
+  (array-nested RayCluster fixture produces its finding).
+
+## Upstream contribution prepared
+
+vLLM docs (`docs/deployment/k8s.md`, unchanged upstream at the analyzed
+SHA): the AMD/ROCm example Deployment lacks the liveness/readiness probes
+the NVIDIA example has, on the same `/health:8000` endpoint. A 12-line
+patch mirroring the NVIDIA probes verbatim applies cleanly; PR to be
+opened from a fork (fix-first framing).
