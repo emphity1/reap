@@ -188,6 +188,11 @@ spec:
 				if !strings.Contains(f.Fix, "medium: Memory") {
 					t.Errorf("Fix = %q, want it to mention medium: Memory", f.Fix)
 				}
+				// The rule is deliberately broad; the escape hatch for
+				// runtimes that never use shared memory must stay in the fix.
+				if !strings.Contains(f.Fix, "baseline") {
+					t.Errorf("Fix = %q, want it to name the baseline escape hatch", f.Fix)
+				}
 				if !strings.HasSuffix(f.Detail, "/dev-shm") {
 					t.Errorf("Detail = %q, want container-name/dev-shm", f.Detail)
 				}
