@@ -1,0 +1,23 @@
+# Derived detector probe — NOT a pristine upstream manifest.
+# Base: kubeflow/kubeflow v1.9.2 components/notebook-controller/config/samples/_v1_notebook.yaml
+# Delta: one nvidia.com/gpu request/limit added (the upstream sample is
+#        CPU-only, which left notebook-no-idle-culling untested by the whole
+#        corpus).
+# Oracle: GPU notebook with no visible culling config — the rule MUST fire.
+# See notebook-gpu-culled.yaml for the suppressed control.
+apiVersion: kubeflow.org/v1
+kind: Notebook
+metadata:
+  name: notebook-gpu-probe
+  namespace: notebook-probe
+spec:
+  template:
+    spec:
+      containers:
+        - name: notebook-gpu-probe
+          image: kubeflownotebookswg/jupyter:latest
+          resources:
+            requests:
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"

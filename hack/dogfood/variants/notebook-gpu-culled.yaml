@@ -1,0 +1,24 @@
+# Derived detector probe — NOT a pristine upstream manifest.
+# Base: kubeflow/kubeflow v1.9.2 components/notebook-controller/config/samples/_v1_notebook.yaml
+# Delta: same GPU notebook as notebook-gpu.yaml plus Jupyter's own documented
+#        idle-shutdown flag (NotebookApp.shutdown_no_activity_timeout).
+# Control case: culling is visible in the manifest, so
+# notebook-no-idle-culling MUST stay silent.
+apiVersion: kubeflow.org/v1
+kind: Notebook
+metadata:
+  name: notebook-gpu-culled-probe
+  namespace: notebook-probe-culled
+spec:
+  template:
+    spec:
+      containers:
+        - name: notebook-gpu-culled-probe
+          image: kubeflownotebookswg/jupyter:latest
+          args:
+            - "--NotebookApp.shutdown_no_activity_timeout=3600"
+          resources:
+            requests:
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"

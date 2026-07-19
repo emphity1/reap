@@ -148,3 +148,77 @@ One oracle-class failure the plan didn't list: the **KServe controller FP**
 
 Nothing else changed during the run: all verdicts above were gathered first,
 per the rules of engagement.
+
+---
+
+# Post-fix re-run (2026-07-19, same corpus + gap probes)
+
+Fixes applied after the gather phase, each TDD'd with a red test first:
+
+1. `findPodSpecs` now recurses into arrays, and the core-kind pod-spec paths
+   are gated on the API group (a `batch.volcano.sh` Job is not a `batch/v1`
+   Job). Regression fixtures: RayCluster with an array-nested GPU worker
+   (must fire `shm-too-small`), Volcano Job unit tests.
+2. `job-no-deadline` requires API group `batch` — the latent Volcano false
+   positive predicted above became real the moment arrays turned visible,
+   and is now guarded.
+3. The bare `"kserve/"` detector pattern is replaced with KServe's six
+   serving-runtime images (verified against upstream
+   `config/runtimes/kustomization.yaml`); the control plane no longer
+   matches. Regression fixture: a probe-less kserve-controller Deployment
+   that must produce zero findings, asserted via a new absence check in the
+   e2e harness.
+
+A kind-only audit of every rule found no further live collisions: the
+training-kind rules self-guard (they require the matching `*ReplicaSpecs`
+key), and the HPA/PDB index works in the suppression direction, where a
+wrong match costs a false negative, not credibility.
+
+## Numbers after the fixes
+
+| Input | Before | After | Why |
+|---|---|---|---|
+| ray-cluster.gpu | 0 findings, GPU invisible | 2 (shm-too-small, gpu-no-node-targeting) | array descent — both are true positives; the KubeRay chart really ships no shm mount, closing the Ray oracle **genuinely**: the chart does *not* configure `/dev/shm`, so firing is correct |
+| kserve-resources.default | 2 (both FP) | **0** | detector narrowed |
+| volcano-tfjob-dist-mnist | 0 (blind: 0 containers) | 0 (2 containers seen) | silent for the right reason now — group guard, plus the example is CPU-only |
+
+Corpus totals moved from 26 findings (2 of them FPs) to 26 findings
+(0 confirmed FPs): the two lost KServe FPs are replaced by the two genuine
+Ray findings the parser used to miss. Confirmed-FP count: **1 pattern → 0**.
+
+## Corpus gaps closed
+
+New pristine inputs (pinned): Kubeflow **TrainJob v2** examples
+(multi-node + Kueue integration) and the **AKS GPU tutorial Job**
+(`samples-tf-mnist-demo` from `use-nvidia-gpu.md` — the manifest thousands of
+users copy). New **derived probes** in `hack/dogfood/variants/` (each header
+documents its upstream base and exact delta; reported separately from the
+pristine corpora):
+
+| Probe | Expectation | Result |
+|---|---|---|
+| PyTorchJob GPU + Kueue queue label | gang rule silent | **PASS** |
+| same, label removed (control) | gang rule fires | **PASS** — proves the suppression test is not vacuous |
+| GPU notebook, no culling | notebook rule fires | **PASS** |
+| GPU notebook + Jupyter's real `shutdown_no_activity_timeout` flag (control) | notebook rule silent | **PASS** |
+
+`job-no-deadline` also stopped being vacuous: it fires on the AKS tutorial
+Job (no `activeDeadlineSeconds` — a true positive worth a README example),
+alongside a debatable-to-TP `shm-too-small`. Every rule except `no-gpu-limit`
+has now fired at least once on real or probe input, and `no-gpu-limit`'s
+silence is the correct behavior for manifests that set limits properly
+(validated on Triton's limits-only pattern).
+
+**New blindness, documented:** TrainJob v2 carries no pod template at all —
+it lives in the referenced `ClusterTrainingRuntime`. Both TrainJob examples
+parse (1 object) but expose 0 containers. Same problem class as
+InferenceService: recorded as the P1 "CRD visibility" work item, not
+fixable by parser recursion.
+
+## Still open (unchanged priorities)
+
+- P1: InferenceService / TrainJob v2 visibility (CRDs whose pod spec is
+  elsewhere or implicit).
+- P1: `shm-too-small` breadth decision (ollama/triton firings are debatable).
+- P2: severity-ordered findings within an object in text output.
+- P2: `entr(y/ies)` pluralization in the write-baseline message.

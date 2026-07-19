@@ -52,4 +52,12 @@ for f in "$DOG"/rendered-examples/*.yaml; do
   run_one examples "$(basename "$f" .yaml)" "$f"
 done
 
+# Derived detector probes: GPU variants of upstream examples (committed in
+# hack/dogfood/variants/, each header documents its base and delta). Reported
+# separately from the pristine corpora.
+for f in hack/dogfood/variants/*.yaml; do
+  [[ -e "$f" ]] || continue
+  run_one variants "$(basename "$f" .yaml)" "$f"
+done
+
 echo "results in $DOG/results/" >&2
