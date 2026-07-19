@@ -52,11 +52,14 @@ go install github.com/emphity1/reap/cmd/reap@latest
 # from source
 git clone https://github.com/emphity1/reap.git && cd reap && make build
 
-# as a Docker image (distroless, ~5 MB)
-make docker                                        # builds reap:dev
-docker run --rm -v "$PWD:/work:ro" reap:dev /work  # lint a directory
-helm template . | docker run --rm -i reap:dev -    # lint rendered charts
+# as a Docker image (distroless, ~5 MB, amd64/arm64)
+docker run --rm -v "$PWD:/work:ro" ghcr.io/emphity1/reap:v0.2.1 /work
+helm template . | docker run --rm -i ghcr.io/emphity1/reap:v0.2.1 -
 ```
+
+Images are published to [GHCR](https://github.com/emphity1/reap/pkgs/container/reap)
+on every release (`:vX.Y.Z` and `:latest`); `make docker` still builds a
+local `reap:dev` from source.
 
 ## Usage
 

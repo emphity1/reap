@@ -1,0 +1,8 @@
+# Dockerfile used by GoReleaser's docker pipeline: it copies the prebuilt
+# per-arch binary into a distroless base (no build stage — GoReleaser has
+# already compiled the binary that lands in the build context). The plain
+# Dockerfile stays for the local `make docker` dev flow.
+FROM gcr.io/distroless/static-debian12:nonroot
+ARG TARGETPLATFORM
+COPY $TARGETPLATFORM/reap /reap
+ENTRYPOINT ["/reap"]

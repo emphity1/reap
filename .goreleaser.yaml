@@ -24,6 +24,26 @@ archives:
       - goos: windows
         formats: [zip]
 
+# Multi-arch image pushed to GHCR on release (one manifest, amd64+arm64).
+# The static binary needs no RUN steps, so buildx cross-builds both arches
+# without emulation.
+dockers_v2:
+  - images:
+      - ghcr.io/emphity1/reap
+    tags:
+      - "{{ .Tag }}"
+      - latest
+    dockerfile: Dockerfile.goreleaser
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.title: reap
+      org.opencontainers.image.description: Lint Kubernetes manifests for GPU waste and ML misconfigurations
+      org.opencontainers.image.source: https://github.com/emphity1/reap
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.licenses: Apache-2.0
+
 checksum:
   name_template: checksums.txt
 
