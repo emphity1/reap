@@ -18,6 +18,12 @@ func (JobNoDeadline) ID() string { return "job-no-deadline" }
 func (JobNoDeadline) Severity() Severity { return Warning }
 
 func (r JobNoDeadline) Check(obj parser.Object) []Finding {
+	// activeDeadlineSeconds is batch/v1 semantics. Same-named kinds from
+	// other groups (Volcano's batch.volcano.sh Job) have different schemas
+	// and often gang-schedule by design — not this rule's business.
+	if obj.Group() != "batch" {
+		return nil
+	}
 	var deadlinePaths [][]string
 	var msgFormat, fix string
 	switch obj.Kind {

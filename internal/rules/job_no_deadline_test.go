@@ -52,6 +52,28 @@ spec:
 			wantInMsg:    "nvidia.com/gpu: 8",
 		},
 		{
+			name: "volcano job is not a batch/v1 Job despite the kind name",
+			doc: `
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata: {name: vj, namespace: ml}
+spec:
+  schedulerName: volcano
+  minAvailable: 2
+  tasks:
+    - replicas: 2
+      name: worker
+      template:
+        spec:
+          containers:
+            - name: worker
+              resources:
+                limits: {nvidia.com/gpu: 1}
+                requests: {nvidia.com/gpu: 1}
+`,
+			wantFindings: 0,
+		},
+		{
 			name: "cpu-only job without deadline is out of scope",
 			doc: `
 apiVersion: batch/v1

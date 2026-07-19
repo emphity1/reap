@@ -1,0 +1,43 @@
+# Regression fixture for the array-descent parser bug found by dogfooding:
+# the GPU worker lives in workerGroupSpecs[] (a list), which the parser used
+# to skip entirely. This fixture must produce exactly one finding —
+# shm-too-small on the worker container. The toleration suppresses
+# gpu-no-node-targeting; the head has no GPU, so no rule looks at it.
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: array-gpu-workers
+  namespace: ray-shm
+spec:
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: "0.0.0.0"
+    template:
+      spec:
+        containers:
+          - name: ray-head
+            image: ghcr.io/example/ray:2.46.0
+            resources:
+              requests:
+                cpu: "1"
+                memory: 4Gi
+              limits:
+                cpu: "1"
+                memory: 4Gi
+  workerGroupSpecs:
+    - groupName: gpu-workers
+      replicas: 2
+      template:
+        spec:
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+          containers:
+            - name: ray-worker
+              image: ghcr.io/example/ray:2.46.0
+              resources:
+                requests:
+                  nvidia.com/gpu: "1"
+                limits:
+                  nvidia.com/gpu: "1"

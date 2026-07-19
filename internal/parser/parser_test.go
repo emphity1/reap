@@ -189,6 +189,53 @@ spec:
 			want: []string{"master", "worker"},
 		},
 		{
+			name: "raycluster pod specs nested inside arrays",
+			doc: `
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: rc
+spec:
+  headGroupSpec:
+    template:
+      spec:
+        containers:
+          - name: ray-head
+  workerGroupSpecs:
+    - groupName: workers
+      replicas: 2
+      template:
+        spec:
+          containers:
+            - name: ray-worker
+`,
+			want: []string{"ray-head", "ray-worker"},
+		},
+		{
+			name: "volcano job with core Job kind name uses the CRD fallback",
+			doc: `
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  name: vj
+spec:
+  tasks:
+    - replicas: 1
+      name: ps
+      template:
+        spec:
+          containers:
+            - name: ps
+    - replicas: 2
+      name: worker
+      template:
+        spec:
+          containers:
+            - name: worker
+`,
+			want: []string{"ps", "worker"},
+		},
+		{
 			name: "service has no containers",
 			doc: `
 apiVersion: v1

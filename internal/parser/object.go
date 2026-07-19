@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // Object is a single Kubernetes manifest document in normalized form. Raw
@@ -15,6 +16,17 @@ type Object struct {
 	Namespace  string
 	Source     string // file path the object came from, or "stdin"
 	Raw        map[string]any
+}
+
+// Group returns the API group of the object's apiVersion — "apps" for
+// apps/v1, "" for core v1. Kind names alone are ambiguous: Volcano's Job
+// (batch.volcano.sh) is not batch/v1 Job, and rules or path lookups keyed on
+// kind must disambiguate with the group.
+func (o Object) Group() string {
+	if i := strings.IndexByte(o.APIVersion, '/'); i >= 0 {
+		return o.APIVersion[:i]
+	}
+	return ""
 }
 
 // Ref identifies the object as Kind/Namespace/Name; the namespace is omitted
@@ -58,15 +70,21 @@ type Container struct {
 	Raw      map[string]any
 }
 
-// podSpecPaths locates the pod spec inside the core workload kinds.
-var podSpecPaths = map[string][]string{
-	"Pod":         {"spec"},
-	"Deployment":  {"spec", "template", "spec"},
-	"ReplicaSet":  {"spec", "template", "spec"},
-	"StatefulSet": {"spec", "template", "spec"},
-	"DaemonSet":   {"spec", "template", "spec"},
-	"Job":         {"spec", "template", "spec"},
-	"CronJob":     {"spec", "jobTemplate", "spec", "template", "spec"},
+// podSpecPaths locates the pod spec inside the core workload kinds. Each
+// entry names the API group the kind belongs to: a same-named kind from
+// another group (Volcano's batch.volcano.sh Job) is a different type with a
+// different layout and must take the CRD fallback instead.
+var podSpecPaths = map[string]struct {
+	group string
+	path  []string
+}{
+	"Pod":         {"", []string{"spec"}},
+	"Deployment":  {"apps", []string{"spec", "template", "spec"}},
+	"ReplicaSet":  {"apps", []string{"spec", "template", "spec"}},
+	"StatefulSet": {"apps", []string{"spec", "template", "spec"}},
+	"DaemonSet":   {"apps", []string{"spec", "template", "spec"}},
+	"Job":         {"batch", []string{"spec", "template", "spec"}},
+	"CronJob":     {"batch", []string{"spec", "jobTemplate", "spec", "template", "spec"}},
 }
 
 // PodSpec is one pod spec found inside the object, with pod-level fields
@@ -84,8 +102,8 @@ type PodSpec struct {
 // templates in.
 func (o Object) PodSpecs() []PodSpec {
 	var specs []map[string]any
-	if path, ok := podSpecPaths[o.Kind]; ok {
-		if spec, ok := dig(o.Raw, path...); ok {
+	if known, ok := podSpecPaths[o.Kind]; ok && o.Group() == known.group {
+		if spec, ok := dig(o.Raw, known.path...); ok {
 			specs = append(specs, spec)
 		}
 	} else if spec, ok := o.Raw["spec"].(map[string]any); ok {
@@ -123,9 +141,11 @@ func dig(m map[string]any, path ...string) (map[string]any, bool) {
 	return cur, true
 }
 
-// findPodSpecs walks nested maps collecting every template.spec that holds a
-// containers list. Keys are visited in sorted order so findings are
-// deterministic across runs.
+// findPodSpecs walks nested maps and lists collecting every template.spec
+// that holds a containers list. Lists matter as much as maps: CRDs commonly
+// nest pod templates inside arrays (RayCluster workerGroupSpecs, Volcano Job
+// tasks). Keys are visited in sorted order so findings are deterministic
+// across runs.
 func findPodSpecs(m map[string]any) []map[string]any {
 	var out []map[string]any
 	if tmpl, ok := m["template"].(map[string]any); ok {
@@ -141,8 +161,15 @@ func findPodSpecs(m map[string]any) []map[string]any {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		if sub, ok := m[k].(map[string]any); ok {
+		switch sub := m[k].(type) {
+		case map[string]any:
 			out = append(out, findPodSpecs(sub)...)
+		case []any:
+			for _, item := range sub {
+				if im, ok := item.(map[string]any); ok {
+					out = append(out, findPodSpecs(im)...)
+				}
+			}
 		}
 	}
 	return out
