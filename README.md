@@ -71,7 +71,7 @@ Example output (severity-colored on a terminal; `-color auto|always|never`,
 `NO_COLOR` respected):
 
 ```
-testdata/no-gpu-limit/bad.yaml
+manifests/app.yaml
   Deployment/ml/llm-inference
     [error] no-gpu-limit
         container "server" requests nvidia.com/gpu: 1 but sets no limit; Kubernetes rejects GPU
@@ -80,6 +80,9 @@ testdata/no-gpu-limit/bad.yaml
 
 reap: 2 objects checked, 1 finding (1 error, 0 warning, 0 info)
 ```
+
+Findings are grouped by file and object, ordered by severity (errors
+first), and every finding carries a concrete fix.
 
 ### Exit codes
 
@@ -152,7 +155,7 @@ both how many were suppressed and how many baseline entries went **stale**
 GitHub Actions — this repo doubles as an action:
 
 ```yaml
-- uses: emphity1/reap@v0.1.0
+- uses: emphity1/reap@v0.2.0
   with:
     path: ./manifests/
     fail-on: warning
@@ -168,11 +171,20 @@ for Linux, macOS, and Windows (amd64/arm64) appear on the
 
 ## Rules
 
+Rules see pod templates wherever manifests put them: the core workload
+kinds (Pod, Deployment, StatefulSet, DaemonSet, Job, CronJob, ...) plus
+CRDs that embed templates in nested maps **or arrays** — Kubeflow's
+PyTorchJob/TFJob/MPIJob, RayCluster and RayJob worker groups, Volcano Job
+tasks. The rule set is dogfooded against real vendor charts (KubeRay,
+NVIDIA GPU Operator, JupyterHub, vLLM production-stack, KServe, Triton,
+Kueue, Volcano, ...) and upstream tutorial manifests; the reproducible
+harness and its findings live in [`hack/dogfood/`](hack/dogfood/).
+
 | ID                | Severity | Checks                                                                 |
 |-------------------|----------|------------------------------------------------------------------------|
 | `no-gpu-limit`    | error    | a container requests a GPU without an equal limit (rejected by the API server; the request/limit pair must be equal for extended resources) |
-| `job-no-deadline` | warning  | a GPU `Job` or `CronJob` sets no `activeDeadlineSeconds`, so a hung run holds its GPUs indefinitely |
-| `model-server-no-probes` | warning | a known inference server (vLLM, Triton, TGI, TorchServe, SGLang, Ollama, KServe, NIM, LMDeploy) has no `readinessProbe`, so traffic arrives minutes before the model finishes loading |
+| `job-no-deadline` | warning  | a GPU `batch/v1` Job or CronJob sets no `activeDeadlineSeconds`, so a hung run holds its GPUs indefinitely (same-named CRD kinds, like Volcano's Job, are recognized and skipped — their schema differs) |
+| `model-server-no-probes` | warning | a known inference server (vLLM, Triton, TGI, TorchServe, SGLang, Ollama, the KServe serving runtimes, NIM, LMDeploy) has no `readinessProbe`, so traffic arrives minutes before the model finishes loading |
 | `distributed-training-no-gang-scheduling` | warning | a multi-replica GPU training job (PyTorchJob, TFJob, MPIJob, XGBoostJob, PaddleJob) has no visible gang-scheduling config (`runPolicy.schedulingPolicy`, Kueue/KAI/YuniKorn queue labels, Volcano/coscheduling scheduler or annotations) — replicas can deadlock holding GPUs |
 | `shm-too-small` | warning | a GPU container has no memory-backed `/dev/shm` (`emptyDir` with `medium: Memory`); the 64 MB default makes shared-memory users — PyTorch DataLoader workers, NCCL, Triton's Python backend — crash or stall with cryptic errors. Deliberately broad: the fix is cheap and harmless; runtimes that never touch shared memory should baseline it |
 | `gpu-no-node-targeting` | info | a GPU workload sets no `nodeSelector`, node affinity, or tolerations; on clusters with tainted GPU nodes it sits `Pending` and the autoscaler won't scale the GPU pool for it |
