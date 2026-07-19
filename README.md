@@ -174,7 +174,7 @@ for Linux, macOS, and Windows (amd64/arm64) appear on the
 | `job-no-deadline` | warning  | a GPU `Job` or `CronJob` sets no `activeDeadlineSeconds`, so a hung run holds its GPUs indefinitely |
 | `model-server-no-probes` | warning | a known inference server (vLLM, Triton, TGI, TorchServe, SGLang, Ollama, KServe, NIM, LMDeploy) has no `readinessProbe`, so traffic arrives minutes before the model finishes loading |
 | `distributed-training-no-gang-scheduling` | warning | a multi-replica GPU training job (PyTorchJob, TFJob, MPIJob, XGBoostJob, PaddleJob) has no visible gang-scheduling config (`runPolicy.schedulingPolicy`, Kueue/KAI/YuniKorn queue labels, Volcano/coscheduling scheduler or annotations) — replicas can deadlock holding GPUs |
-| `shm-too-small` | warning | a GPU container has no memory-backed `/dev/shm` (`emptyDir` with `medium: Memory`); the 64 MB default makes PyTorch DataLoader workers and NCCL crash with cryptic shared-memory errors |
+| `shm-too-small` | warning | a GPU container has no memory-backed `/dev/shm` (`emptyDir` with `medium: Memory`); the 64 MB default makes shared-memory users — PyTorch DataLoader workers, NCCL, Triton's Python backend — crash or stall with cryptic errors. Deliberately broad: the fix is cheap and harmless; runtimes that never touch shared memory should baseline it |
 | `gpu-no-node-targeting` | info | a GPU workload sets no `nodeSelector`, node affinity, or tolerations; on clusters with tainted GPU nodes it sits `Pending` and the autoscaler won't scale the GPU pool for it |
 | `multinode-no-topology-affinity` | info | a multi-replica GPU training job expresses no placement intent (affinity, `topologySpreadConstraints`, `nodeSelector`, or topology-aware scheduler hints) — NCCL collectives fall back to the slow network path |
 | `notebook-no-idle-culling` | info | a GPU notebook (Jupyter image or Kubeflow `Notebook`) has no visible idle-culling configuration — a forgotten notebook holds its GPU all weekend |
@@ -192,6 +192,16 @@ utilization (a runtime measurement — needs DCGM/metrics, a later phase) and
 node-pool scale-to-zero (lives in Terraform or autoscaler CRDs, not in
 workload manifests). A linter that guesses burns trust; these return only
 when they can be answered honestly.
+
+The same honesty applies to **operator-managed serving and training CRDs**
+(KServe `InferenceService`, Kubeflow Trainer v2 `TrainJob`): their pod
+construction belongs to the operator or a referenced runtime, not to the
+manifest. KServe injects probes and autoscales on its own, and a `TrainJob`
+carries no pod template at all — so pod-level findings there would be
+unfixable or plain wrong. reap lints what *you* control; workloads those
+operators generate are linted where they are defined (e.g. a
+`ClusterTrainingRuntime` rendered to YAML pipes into `reap -` like anything
+else).
 
 ## Development
 

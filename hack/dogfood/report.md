@@ -215,10 +215,19 @@ parse (1 object) but expose 0 containers. Same problem class as
 InferenceService: recorded as the P1 "CRD visibility" work item, not
 fixable by parser recursion.
 
-## Still open (unchanged priorities)
+## Follow-ups — all resolved (2026-07-19)
 
-- P1: InferenceService / TrainJob v2 visibility (CRDs whose pod spec is
-  elsewhere or implicit).
-- P1: `shm-too-small` breadth decision (ollama/triton firings are debatable).
-- P2: severity-ordered findings within an object in text output.
-- P2: `entr(y/ies)` pluralization in the write-baseline message.
+- **InferenceService / TrainJob v2 visibility → documented boundary, not
+  code.** Pod-level findings on operator-managed CRDs would be unfixable or
+  wrong (operators inject probes and autoscale; TrainJob's pod template
+  lives in the referenced ClusterTrainingRuntime). The README now explains
+  this under "deliberately not checked", including the workaround: lint the
+  rendered runtime output via stdin.
+- **`shm-too-small` breadth → stays broad.** The message stops overclaiming
+  PyTorch (it now names NCCL and Triton's Python backend — Triton was
+  re-judged TP-leaning on that basis) and the fix names the baseline escape
+  hatch for runtimes that never use shared memory (ollama, the corpus's one
+  debatable firing).
+- **Severity ordering** — findings sort error → warning → info within an
+  object (engine-level, shared by text and JSON).
+- **Pluralization** of the write-baseline message fixed.
