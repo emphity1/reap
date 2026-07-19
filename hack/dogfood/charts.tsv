@@ -1,0 +1,16 @@
+# Corpus A: vendor Helm charts, pinned. Tab-separated:
+# name	kind	source	chart	version	variants
+# kind: repo (helm repo), oci (OCI registry), local (chart dir fetched by fetch.sh)
+# variants: comma-separated; "gpu" needs values/<name>-gpu.yaml
+ray-cluster	repo	https://ray-project.github.io/kuberay-helm/	ray-cluster	1.6.2	default,gpu
+jupyterhub	repo	https://hub.jupyter.org/helm-chart/	jupyterhub	4.4.0	default
+gpu-operator	repo	https://helm.ngc.nvidia.com/nvidia	gpu-operator	v26.3.3	default
+vllm-stack	repo	https://vllm-project.github.io/production-stack	vllm-stack	0.1.11	default,gpu
+volcano	repo	https://volcano-sh.github.io/helm-charts	volcano	1.15.0	default
+kueue	oci	oci://registry.k8s.io/kueue/charts/kueue	kueue	0.18.3	default
+ollama	repo	https://otwld.github.io/ollama-helm/	ollama	1.67.0	default,gpu
+dcgm-exporter	repo	https://nvidia.github.io/dcgm-exporter/helm-charts	dcgm-exporter	4.8.3	default
+mlflow	repo	https://community-charts.github.io/helm-charts	mlflow	1.11.2	default
+seldon-core-operator	repo	https://storage.googleapis.com/seldon-charts	seldon-core-operator	1.19.0	default
+kserve-resources	oci	oci://ghcr.io/kserve/charts/kserve-resources	kserve-resources	v0.19.0	default
+triton-k8s-onprem	local	https://raw.githubusercontent.com/triton-inference-server/server/v2.59.0/deploy/k8s-onprem	triton-k8s-onprem	v2.59.0	default

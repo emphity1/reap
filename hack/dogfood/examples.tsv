@@ -1,0 +1,15 @@
+# Corpus B: example/tutorial manifests from upstream docs, pinned to tags.
+# Tab-separated: name	url
+# vllm-docs-k8s is a markdown file; fetch.sh extracts its ```yaml blocks.
+pytorchjob-simple	https://raw.githubusercontent.com/kubeflow/training-operator/v1.8.1/examples/pytorch/simple.yaml
+trainer-v2-simple	https://raw.githubusercontent.com/kubeflow/trainer/v1.9.2/examples/pytorch/simple.yaml
+mpijob-tf-benchmarks	https://raw.githubusercontent.com/kubeflow/mpi-operator/v0.6.0/examples/v2beta1/tensorflow-benchmarks/tensorflow-benchmarks.yaml
+rayjob-sample	https://raw.githubusercontent.com/ray-project/kuberay/v1.4.2/ray-operator/config/samples/ray-job.sample.yaml
+rayjob-batch-inference	https://raw.githubusercontent.com/ray-project/kuberay/v1.4.2/ray-operator/config/samples/ray-job.batch-inference.yaml
+kueue-sample-job	https://raw.githubusercontent.com/kubernetes-sigs/kueue/v0.13.0/site/static/examples/jobs/sample-job.yaml
+kueue-sample-pytorchjob	https://raw.githubusercontent.com/kubernetes-sigs/kueue/v0.13.0/site/static/examples/jobs/sample-pytorchjob.yaml
+volcano-tfjob-dist-mnist	https://raw.githubusercontent.com/volcano-sh/volcano/v1.12.2/example/integrations/tensorflow/dist-mnist/tf-dist-mnist-example.yaml
+kserve-sklearn	https://raw.githubusercontent.com/kserve/kserve/v0.15.2/docs/samples/v1beta1/sklearn/v1/sklearn.yaml
+kserve-torchserve-gpu	https://raw.githubusercontent.com/kserve/kserve/v0.15.2/docs/samples/v1beta1/torchserve/v1/gpu.yaml
+vllm-docs-k8s	https://raw.githubusercontent.com/vllm-project/vllm/3935829f897616fdb14fb7324875d41dd4914dff/docs/deployment/k8s.md
+kubeflow-notebook	https://raw.githubusercontent.com/kubeflow/kubeflow/v1.9.2/components/notebook-controller/config/samples/_v1_notebook.yaml

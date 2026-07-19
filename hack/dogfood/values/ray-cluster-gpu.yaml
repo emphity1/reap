@@ -1,0 +1,12 @@
+# Minimal GPU override for kuberay/ray-cluster 1.6.2: one GPU per worker.
+# Keys verified against `helm show values kuberay/ray-cluster --version 1.6.2`.
+worker:
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+      nvidia.com/gpu: "1"
+    limits:
+      cpu: "1"
+      memory: "4Gi"
+      nvidia.com/gpu: "1"

@@ -1,0 +1,7 @@
+# Minimal GPU override for ollama-helm/ollama 1.67.0. Keys verified against
+# `helm show values ollama-helm/ollama --version 1.67.0`.
+ollama:
+  gpu:
+    enabled: true
+    type: nvidia
+    number: 1
