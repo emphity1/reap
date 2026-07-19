@@ -174,8 +174,8 @@ func TestBaselineFlow(t *testing.T) {
 	if exit := run([]string{"-write-baseline", baselinePath, badFixture}, strings.NewReader(""), &out, &errOut); exit != 0 {
 		t.Fatalf("write-baseline exit = %d, want 0\nstderr:\n%s", exit, errOut.String())
 	}
-	if !strings.Contains(out.String(), "baseline") {
-		t.Errorf("write-baseline output should mention the baseline:\n%s", out.String())
+	if !strings.Contains(out.String(), "2 baseline entries") {
+		t.Errorf("write-baseline output should count entries with proper pluralization:\n%s", out.String())
 	}
 	if _, err := os.Stat(baselinePath); err != nil {
 		t.Fatalf("baseline file not written: %v", err)

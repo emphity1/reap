@@ -8,10 +8,13 @@ import (
 )
 
 // stubRule reports one finding per object so ordering can be observed.
-type stubRule struct{ id string }
+type stubRule struct {
+	id  string
+	sev rules.Severity
+}
 
 func (r stubRule) ID() string               { return r.id }
-func (r stubRule) Severity() rules.Severity { return rules.Warning }
+func (r stubRule) Severity() rules.Severity { return r.sev }
 
 func (r stubRule) Check(obj parser.Object) []rules.Finding {
 	return []rules.Finding{{
@@ -41,6 +44,27 @@ func TestRunSortsFindings(t *testing.T) {
 		if findings[i].Source != want.source || findings[i].RuleID != want.rule {
 			t.Errorf("finding %d = %s/%s, want %s/%s",
 				i, findings[i].Source, findings[i].RuleID, want.source, want.rule)
+		}
+	}
+}
+
+func TestRunOrdersBySeverityWithinObject(t *testing.T) {
+	objs := []parser.Object{{Kind: "Pod", Name: "p", Source: "a.yaml"}}
+	// Rule IDs chosen so alphabetical order would put the info finding
+	// first: severity must outrank rule ID inside one object.
+	findings := Run(objs, []rules.Rule{
+		stubRule{id: "aaa-info", sev: rules.Info},
+		stubRule{id: "zzz-warning", sev: rules.Warning},
+		stubRule{id: "mmm-error", sev: rules.Error},
+	}, nil)
+	if len(findings) != 3 {
+		t.Fatalf("got %d findings, want 3", len(findings))
+	}
+	wantOrder := []string{"mmm-error", "zzz-warning", "aaa-info"}
+	for i, want := range wantOrder {
+		if findings[i].RuleID != want {
+			t.Errorf("finding %d = %s, want %s (severity must sort before rule ID)",
+				i, findings[i].RuleID, want)
 		}
 	}
 }

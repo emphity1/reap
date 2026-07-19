@@ -10,8 +10,9 @@ import (
 
 // Run applies each per-object rule to each object, then each set-level rule
 // to the whole set (with the cross-object Index built once), and returns the
-// findings sorted by source, then object, then rule, so output is stable and
-// grouped per file.
+// findings sorted by source, then object, then severity (highest first, so a
+// reader sees what matters before the info tail), then rule, so output is
+// stable and grouped per file.
 func Run(objs []parser.Object, rs []rules.Rule, srs []rules.SetRule) []rules.Finding {
 	var findings []rules.Finding
 	for _, obj := range objs {
@@ -32,6 +33,9 @@ func Run(objs []parser.Object, rs []rules.Rule, srs []rules.SetRule) []rules.Fin
 		}
 		if a.ObjectRef != b.ObjectRef {
 			return a.ObjectRef < b.ObjectRef
+		}
+		if a.Severity != b.Severity {
+			return a.Severity > b.Severity
 		}
 		return a.RuleID < b.RuleID
 	})

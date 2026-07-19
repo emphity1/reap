@@ -120,7 +120,11 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "reap: %v\n", err)
 			return 2
 		}
-		fmt.Fprintf(stdout, "reap: wrote %d baseline entr(y/ies) to %s\n", n, *writeBaseline)
+		noun := "entries"
+		if n == 1 {
+			noun = "entry"
+		}
+		fmt.Fprintf(stdout, "reap: wrote %d baseline %s to %s\n", n, noun, *writeBaseline)
 		return 0
 	}
 	suppressed, stale := 0, 0
