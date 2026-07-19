@@ -14,6 +14,8 @@ Think "kube-linter, specialized for GPU and ML workloads."
 It reads local files only: no network, no credentials, no cluster access,
 no telemetry.
 
+![reap linting a GPU manifest: one error, one warning, one info, each with a concrete fix](docs/demo.gif)
+
 ## Who is it for
 
 - **ML engineers** writing a PyTorchJob or a vLLM deployment, who want to know

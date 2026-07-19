@@ -1,0 +1,25 @@
+# Demo manifest for the README GIF (docs/demo/demo.tape renders it).
+# Written to produce one finding per severity: a GPU request without a
+# limit (error), no memory-backed /dev/shm (warning), and no node
+# targeting (info).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-finetune
+  namespace: ml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-finetune
+  template:
+    metadata:
+      labels:
+        app: llm-finetune
+    spec:
+      containers:
+        - name: trainer
+          image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+          resources:
+            requests:
+              nvidia.com/gpu: "1"
