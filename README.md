@@ -72,11 +72,12 @@ helm template . | reap -
 kustomize build . | reap -
 ```
 
-Example output (severity-colored on a terminal; `-color auto|always|never`,
-`NO_COLOR` respected):
+Example output — reproduce it with `reap docs/examples/app.yaml` on the
+committed [example manifest](docs/examples/app.yaml) (severity-colored on a
+terminal; `-color auto|always|never`, `NO_COLOR` respected):
 
 ```
-manifests/app.yaml
+docs/examples/app.yaml
   Deployment/ml/llm-inference
     [error] no-gpu-limit
         container "server" requests nvidia.com/gpu: 1 but sets no limit; Kubernetes rejects GPU
@@ -110,7 +111,11 @@ to always exit 0); the default is `warning`.
   "summary": {
     "objectsChecked": 2,
     "findings": 1,
-    "bySeverity": {"error": 1, "warning": 0, "info": 0},
+    "bySeverity": {
+      "error": 1,
+      "info": 0,
+      "warning": 0
+    },
     "suppressed": 0,
     "staleBaselineEntries": 0
   },
@@ -118,10 +123,10 @@ to always exit 0); the default is `warning`.
     {
       "ruleId": "no-gpu-limit",
       "severity": "error",
-      "message": "container \"server\" requests nvidia.com/gpu: 1 but sets no limit; ...",
+      "message": "container \"server\" requests nvidia.com/gpu: 1 but sets no limit; Kubernetes rejects GPU requests without an equal limit, so this manifest will not deploy",
       "object": "Deployment/ml/llm-inference",
       "detail": "server/nvidia.com/gpu",
-      "source": "manifests/app.yaml",
+      "source": "docs/examples/app.yaml",
       "fix": "set resources.limits[\"nvidia.com/gpu\"] equal to the request",
       "fingerprint": "c3c88f7fa45669b8"
     }
