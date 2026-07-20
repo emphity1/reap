@@ -16,3 +16,25 @@ jobs:
       - run: make lint
       - run: make test
       - run: make build
+
+  # Self-test of the composite action (action.yml) on a real runner: once with
+  # the gate off (must pass), once gating on the example's error finding (must
+  # fail). The example manifest doubles as the README's reproducible output.
+  action-self-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: run with the gate off
+        uses: ./
+        with:
+          path: docs/examples/app.yaml
+          fail-on: none
+      - name: run gating on the error finding
+        id: gate
+        continue-on-error: true
+        uses: ./
+        with:
+          path: docs/examples/app.yaml
+          fail-on: error
+      - name: assert the gate failed
+        run: test "${{ steps.gate.outcome }}" = "failure"
